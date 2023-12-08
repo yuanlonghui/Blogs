@@ -67,18 +67,97 @@ $$
 &= \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}\frac{q(z|x)}{p_\theta(z|x)}] \nonumber \\
 &= \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}] - \mathbb{E}_{x,z\sim q(x,z)}[\log \frac{q(z|x)}{p_\theta(z|x)}]\nonumber \\
 &= \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}] - \mathbb{E}_{x\sim q(x)}[KL(q(z|x)||p_\theta(z|x))]\nonumber \\
-& \le  \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}]\nonumber
+& \le  \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}] = \mathcal{L}_{EVLB}\nonumber
 \end{align}
 $$
 优化右边的上界(从变分法看，应该有什么理论证明)，先变换变换 
 $$
 \begin{align}
 &\mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}] = \mathbb{E}_{x_{0:T}}[-\log \frac{p_\theta(x_{0:T})}{q(x_{1:T}| x_0)}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log \frac{p(x_t)\Pi_{t=1}^T p_{\theta}(x_{t-1}|x_t)}{\Pi_{t=1}^T q(x_t | x_{t-1})}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log p(x_t) -\sum_{t=1}^T \log \frac{p_{\theta}(x_{t-1}|x_t)}{q(x_t | x_{t-1})}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log p(x_t) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t)}{q(x_t | x_{t-1}, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log p(x_t) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}, x_0)}{q(x_t , x_{t-1}, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log p(x_t) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}, x_0)}{q(x_{t-1} | x_{t}, x_0) q(x_t, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
-&=\mathbb{E}_{x_{0:T}}[-\log p(x_t) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}|x_0)}{q(x_{t-1} | x_{t}, x_0) q(x_t|x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log \frac{p(x_T)\Pi_{t=1}^T p_{\theta}(x_{t-1}|x_t)}{\Pi_{t=1}^T q(x_t | x_{t-1})}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=1}^T \log \frac{p_{\theta}(x_{t-1}|x_t)}{q(x_t | x_{t-1})}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t)}{q(x_t | x_{t-1}, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}, x_0)}{q(x_t , x_{t-1}, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}, x_0)}{q(x_{t-1} | x_{t}, x_0) q(x_t, x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) q(x_{t-1}|x_0)}{q(x_{t-1} | x_{t}, x_0) q(x_t|x_0)}-\log \frac{p_\theta(x_0|x_1)}{q(x_1|x_0)}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[-\log p(x_T) -\sum_{t=2}^T \log \frac{p_{\theta}(x_{t-1}|x_t) }{q(x_{t-1} | x_{t}, x_0)}-\log \frac{\bcancel{q(x_{T-1}|x_0)} \bcancel{q(x_{T-2}|x_0)} \cdots \bcancel{q(x_1|x_0)} p_\theta(x_0|x_1)}{q(x_{T}|x_0) \bcancel{q(x_{T-1}|x_0)} \cdots \bcancel{q(x_2|
+x_0)} \bcancel{q(x_1|x_0)}}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}}[\log \frac{q(x_T|x_0)}{p(x_T)} +\sum_{t=2}^T \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}-\log p_{\theta}(x_0|x_1)]  \nonumber \\
+&=\underset{E_1}{\underbrace{\mathbb{E}_{x_{0:T}}\log \frac{q(x_T|x_0)}{p(x_T)}}} + \underset{E_2}{\underbrace{\sum_{t=2}^T \mathbb{E}_{x_{0:T}} \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}}} - \mathbb{E}_{x_{0:T}}\log p_{\theta}(x_0|x_1) \nonumber \\
+\end{align}
+$$
+我们先引入几条简单的期望的变换公式：
+- 消除不包含的变量 $\mathbb{E}_{x,y\sim p(x,y)}[f(x)] = \mathbb{E}_{x\sim p(x)}[f(x)]$
+$$
+\begin{align}
+\mathbb{E}_{x,y\sim p(x,y)}[f(x)] &= \int_{x,y} p(x, y) f(x) dxdy \nonumber \\
+&= \int_x \left[\int_y p(x, y) dy\right] f(x) dx \nonumber \\
+&= \int_x p(x)f(x) dx \nonumber \\
+&= \mathbb{E}_{x\sim p(x)}[f(x)] \nonumber \\
+\end{align}
+$$
+
+- 进行条件概率运算变换，即$\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] = \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)] $
+$$
+\begin{align}
+\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] &= \int_{x,y} p(x, y) f(x,y) dxdy \nonumber \\
+&= \int_x p(x) \left[\int_y p(y|x) f(x, y) dy \right] dx \nonumber \\
+&= \int_x p(x) \underset{\text{only related to } x}{\underbrace{\mathbb{E}_{y \sim p(y|x)} [f(x,y)]}} dx \nonumber \\
+&= \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)]\nonumber \\
+\end{align}
+$$
+
+- 添加任意无关的变量，即$\mathbb{E}_{x\sim p(x)}[f(x)] =\mathbb{E}_{x,y\sim p(x,y)}[f(x)]$
+$$
+\begin{align}
+\mathbb{E}_{x\sim p(x)}[f(x)] &= \int_x p(x)f(x) dx \nonumber \\
+&= \int_x \left[\int_y p(x, y) dy\right] f(x) dx \nonumber \\
+&= \int_{x,y} p(x, y) f(x) dxdy \nonumber \\
+&= \mathbb{E}_{x,y\sim p(x,y)}[f(x)] \nonumber \\
+\end{align}
+$$
+根据上诉三个公式，变换$E_1$：
+$$
+\begin{align}
+\mathbb{E}_{x_{0:T}}[\log \frac{q(x_T|x_0)}{p(x_T)}]& = \mathbb{E}_{x_{0}, x_{T}}[\log \frac{q(x_T|x_0)}{p(x_T)}] \nonumber \\
+&= \mathbb{E}_{x_0} \mathbb{E}_{x_T|x_0}[\log \frac{q(x_T|x_0)}{p(x_T)}] \nonumber \\
+&= \mathbb{E}_{x_0} [\underset{\text{only related to }x_0}{\underbrace{KL(q(x_T|x_0)||p(x_T))}}]\nonumber \\
+&=\mathbb{E}_{x_{0:T}} [KL(q(x_T|x_0)||p(x_T))]\nonumber \\
+\end{align}
+% \begin{align}
+% \mathbb{E}_{x_{0:T}}[\log \frac{q(x_T|x_0)}{p(x_T)}]& = \int_{x_{0:T}} q(x_{0:T})\log \frac{q(x_T|x_0)}{p(x_T)} dx_{0:T} \nonumber \\
+% & = \int_{x_0,x_{T}}\int_{x_{1:T-1}} q(x_0,x_T, x_{1:T-1})dx_{1:T-1}\log \frac{q(x_T|x_0)}{p(x_T)} dx_T dx_0 & (1) \nonumber \\
+% &=\int_{x_{0},x_{T}} q(x_0, x_t) \log \frac{q(x_T|x_0)}{p(x_T)} dx_T dx_0 \nonumber \\
+% &=\int_{x_{0}} q(x_0) \int_{x_T}q(x_T|x_0) \log \frac{q(x_T|x_0)}{p(x_T)} dx_T dx_0 & (2) \nonumber \\
+% &= \int_{x_0} q(x_0) \underset{\text{only related to } x_0}{\underbrace{KL(q(x_T|x_0)||p(x_T))}}dx_0 = \mathbb{E}_{x_0\sim q(x_0)}[KL(q(x_T|x_0)||p(x_T))]\nonumber \\
+% &= \int_{x_0}\int_{x_{1:T}} q(x_0, x_{1:T})dx_{1:T} \underset{\text{only related to } x_0}{\underbrace{KL(q(x_T|x_0)||p(x_T))}}dx_0 & (3)\nonumber \\
+% &= \int_{x_0}\int_{x_{1:T}} q(x_0, x_{1:T})\underset{\text{only related to } x_0}{\underbrace{KL(q(x_T|x_0)||p(x_T))}}dx_{1:T} dx_0 \nonumber \\
+% &= \int_{x_{0:T}} q(x_{0:T})\underset{\text{only related to } x_0}{\underbrace{KL(q(x_T|x_0)||p(x_T))}} dx_{0:T} \nonumber \\
+% &= \mathbb{E}_{x_{0:T}\sim q(x_{0:T})}[KL(q(x_T|x_0)||p(x_T))]\nonumber \\
+% \end{align}
+$$
+
+
+继续变换$E_2$：
+$$
+\begin{align}
+\sum_{t=2}^T \mathbb{E}_{x_{0:T}}[ \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}] &= \sum_{t=2}^T \mathbb{E}_{x_{0}, x_{t-1}, x_{t}}[ \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}] \nonumber \\
+&= \sum_{t=2}^T \mathbb{E}_{x_{0}, x_{t}}\mathbb{E}_{x_{t-1} | x_{0}, x_{t}}[ \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}] \nonumber \\
+&= \sum_{t=2}^T \mathbb{E}_{x_{0}, x_{t}} [\underset{\text{only related to }x_0, x_t}{\underbrace{KL(q(x_{t-1} | x_{t}, x_0)||p_{\theta}(x_{t-1}|x_t))}}] \nonumber \\
+&= \sum_{t=2}^T \mathbb{E}_{x_{0:T}} [KL(q(x_{t-1} | x_{t}, x_0)||p_{\theta}(x_{t-1}|x_t))] \nonumber \\
+\end{align} 
+$$
+于是损失函数可以变换为：
+$$
+\mathcal{L}_{EVLB} = \mathbb{E}_{x_{0:T}}\left[ \underset{\mathcal{L}_T}{\underbrace{KL(q(x_T|x_0)||p(x_T))}} + \underset{\mathcal{L}_{t-1}, t=2, \cdots, T}{\underbrace{\sum_{t=2}^T KL(q(x_{t-1} | x_{t}, x_0)||p_{\theta}(x_{t-1}|x_t))}} \underset{\mathcal{L}_0}{\underbrace{- \log p_{\theta}(x_0|x_1)}} \right]
+$$
+
+在上面公式中，可以将损失函数划分为$\mathcal{L}_{T}$，$\mathcal{L}_{t-1}$和$\mathcal{L}_{0}$三个部分，其中$\mathcal{L}_{T}$是两个高斯分布之间的$KL$距离（实际上是希望保证前向过程最终得到的是高斯噪声，而前向过程没有可学参数，而$x_T$在逆过程中本来就是从高斯噪声中采样的，于是这一项是个与$\theta$无关的）。$\mathcal{L}_{t-1}$是噪声匹配损失，希望网络能够学到每一个前向过程（给定$x_0$）的逆过程。$\mathcal{L}_{0}$是最终的重建损失，从噪声样本还原至真实样本。
+
+接下来的问题就是$q(x_{t-1} | x_{t}, x_0)$是什么的问题，通过条件概率公式，我们有
+$$
+\begin{align}
+q(x_{t-1}|x_{t}, x_{0}) &= \frac{q(x_{t-1}, x_{t}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}| x_{0})}{q(x_{t}| x_{0})} \nonumber \\
+&=
 \end{align}
 $$
