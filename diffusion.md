@@ -38,7 +38,7 @@ x_t &= \sqrt{1-\beta_t} x_{t-1} + \sqrt{\beta_t}\epsilon \nonumber \\
 &=\sqrt{\alpha_{t}\alpha_{t-1}\alpha_{t-2}}  x_{t-3} + \sqrt{1-\alpha_t\alpha_{t-1}\alpha_{t-2}}\bar{\epsilon}_{t-3} & \divideontimes \nonumber \\
 & = \cdots \nonumber \\
 & = \sqrt{\bar{\alpha_{t}}} x_0 + \sqrt{1-\bar{\alpha_{t}}}\epsilon \nonumber \\
-\Longleftrightarrow & \quad p(x_t|x_0) = \mathcal{N}(x_t;\sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)\mathbf{I})
+\Longleftrightarrow & \quad p(x_t|x_0) = \mathcal{N}(x_t;\sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)\mathbf{I})\nonumber \\
 \end{align}
 $$
 其中的$\divideontimes$表示的是高斯噪声的合并：
@@ -157,7 +157,79 @@ $$
 接下来的问题就是$q(x_{t-1} | x_{t}, x_0)$是什么的问题，通过条件概率公式，我们有
 $$
 \begin{align}
-q(x_{t-1}|x_{t}, x_{0}) &= \frac{q(x_{t-1}, x_{t}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}| x_{0})}{q(x_{t}| x_{0})} \nonumber \\
-&=
+q(x_{t-1}|x_{t}, x_{0}) &= \frac{q(x_{t-1}, x_{t}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1})q(x_{t-1}| x_{0})}{q(x_{t}| x_{0})} \nonumber \\
+&\propto \exp\left[-\frac{1}{2}\left(\frac{(x_{t} - \sqrt{1-\beta_t}x_{t-1})^2}{\beta_t} + \frac{(x_{t-1} - \sqrt{\bar{\alpha}_{t-1}} x_0)^2}{1 - \bar{\alpha}_{t-1}} - \frac{(x_t - \sqrt{\bar{\alpha}_t}^2)}{1 - \bar{\alpha}_t}\right) \right] \nonumber \\
+&=  \exp \left[-\frac{1}{2}\left( \frac{x_{t}^2 - 2 \sqrt{\alpha_t}x_{t-1}x_t + \alpha_t x_{t-1}^2}{\beta_t} + \frac{x_{t-1}^2 - 2\sqrt{\bar{\alpha}_{t-1}} x_0 x_{t-1} + \bar{\alpha}_{t-1}x_0^2}{1 - \bar{\alpha}_{t-1}} - \frac{(x_t - \sqrt{\bar{\alpha}_t}^2)}{1 - \bar{\alpha}_t} \right)\right] \nonumber \\
+&= \exp \left[-\frac{1}{2}\left( \left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)x_{t-1}^2 - 2\left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)x_{t-1} + C(x_t, x_0) \right)\right] \nonumber \\
+&= \lambda \exp \left[-\frac{1}{2}\left( \left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)x_{t-1}^2 - 2\left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)x_{t-1}\right)\right] \nonumber \\
+&= \lambda \exp \left[-\frac{\left( x_{t-1} - \left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)\right)^2}{2\cdot 1/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)}\right] \nonumber \\
+\end{align}
+$$
+可以看到$q(x_{t-1} | x_{t}, x_0)$符合一个整体放缩的高斯分布的概率密度，通过积分等于一可以得到具体的$\lambda$的值，也就是说上述公式完全决定了$q(x_{t-1} | x_{t}, x_0)$就是一个高斯分布，并且其均值和方差都决定了，分别为：
+$$
+\begin{align}
+&q(x_{t-1} | x_{t}, x_0)=\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I}) \nonumber \\
+\tilde{\beta}_t &= 1/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right) = 1/\left(\frac{\alpha_t(1-\bar{\alpha}_{t-1}) + \beta_t}{\beta_t(1-\bar{\alpha}_{t-1})} \right) \nonumber \\
+&= 1/\left(\frac{\alpha_t- \alpha_t\bar{\alpha}_{t-1} + \beta_t}{\beta_t(1-\bar{\alpha}_{t-1})} \right) = 1/\left(\frac{1 - \bar{\alpha}_{t}}{\beta_t(1-\bar{\alpha}_{t-1})} \right) = \frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_{t}}\beta_t \nonumber \\
+\tilde{\mu}_t(x_t,x_0)& = \left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right) \nonumber \\
+&=\left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_{t}}\beta_t \nonumber \\
+&= \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t\sqrt{\bar{\alpha}_{t-1}}x_0}{1-\bar{\alpha}_t} \nonumber \\
+\end{align}
+$$
+回顾$x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_{t}}\epsilon$, 可以有$x_0 =  \frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)$，于是有
+$$
+\begin{align}
+\tilde{\mu}_t(x_t,x_0)& = \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t\sqrt{\bar{\alpha}_{t-1}}\frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)}{1-\bar{\alpha}_t} \nonumber \\
+& = \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t\frac{1}{\sqrt{{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)}{1-\bar{\alpha}_t} \nonumber \\
+& = \frac{{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
+& = \frac{({\alpha_t}-\bar{\alpha}_{t})x_t + (1 - \alpha_t) x_t - (1 - \alpha_t) \sqrt{1-\bar{\alpha}_{t}}\epsilon}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
+& = \frac{(1-\bar{\alpha}_{t})x_t - (1 - \alpha_t) \sqrt{1-\bar{\alpha}_{t}}\epsilon}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
+&= \frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right) \nonumber
+
+\end{align}
+$$
+
+问题转换成如何计算两个高斯分布的KL散度，推到过程如下：
+$$
+\begin{align}
+&KL(\mathcal{N}(\mu_1, \Sigma_1), \mathcal{N}(\mu_2, \Sigma_2)) \nonumber \\
+&= \mathbb{E}_{x\sim \mathcal{N}(\mu_1, \Sigma_1)}\Bigg[\log \frac{1}{(2\pi)^{\frac{D}{2}}|\Sigma_1|^{\frac{1}{2}}}\exp\left(-\frac{1}{2}(x-\mu_1)^{\top}\Sigma_1^{-1}(x-\mu_1)\right) \nonumber \\
+&- \log \frac{1}{(2\pi)^{\frac{D}{2}}|\Sigma_2|^{\frac{1}{2}}}\exp\left(-\frac{1}{2}(x-\mu_2)^{\top}\Sigma_2^{-1}(x-\mu_2)\right)\Bigg] \nonumber \\
+&= \mathbb{E}_{\mathcal{N}_1}\left[\frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}(x-\mu_1)^{\top}\Sigma_1^{-1}(x-\mu_1) + \frac{1}{2}(x-\mu_2)^{\top}\Sigma_2^{-1}(x-\mu_2) \right] \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[(x-\mu_1)^{\top}\Sigma_1^{-1}(x-\mu_1)\right] + \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[(x-\mu_2)^{\top}\Sigma_2^{-1}(x-\mu_2)\right] \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[\text{tr}\left((x-\mu_1)^{\top}\Sigma_1^{-1}(x-\mu_1)\right)\right] + \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[\text{tr}\left((x-\mu_2)^{\top}\Sigma_2^{-1}(x-\mu_2)\right)\right] \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[\text{tr}\left(\Sigma_1^{-1}(x-\mu_1)(x-\mu_1)^{\top}\right)\right] + \frac{1}{2}\mathbb{E}_{\mathcal{N}_1}\left[\text{tr}\left(\Sigma_2^{-1}(x-\mu_2)(x-\mu_2)^{\top}\right)\right] \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}\text{tr}\left(\Sigma_1^{-1}\mathbb{E}_{\mathcal{N}_1}\left[(x-\mu_1)(x-\mu_1)^{\top}\right]\right) + \frac{1}{2}\text{tr}\left(\Sigma_2^{-1}\mathbb{E}_{\mathcal{N}_1}\left[(x-\mu_2)(x-\mu_2)^{\top}\right]\right) \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{1}{2}\text{tr}\left(\Sigma_1^{-1}\Sigma\right) + \frac{1}{2}\text{tr}\left(\Sigma_2^{-1}\mathbb{E}_{\mathcal{N}_1}\left[(x-\mu_2)(x-\mu_2)^{\top}\right]\right) \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{D}{2} + \frac{1}{2}\text{tr}\left(\Sigma_2^{-1}\mathbb{E}_{\mathcal{N}_1}\left[xx^\top - \mu_2x^\top - x\mu_2^\top+\mu_2\mu_2^\top\right]\right) \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{D}{2} + \frac{1}{2}\text{tr}\left(\Sigma_2^{-1}\left(\underset{\mathbb{E}_{\mathcal{N}_1}[xx^\top]}{\underbrace{\Sigma_1 + \mu_1\mu_1^\top}} - \mu_2\mu_1^\top - \mu_1\mu_2^\top+\mu_2\mu_2^\top\right)\right) \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{D}{2} + \frac{1}{2}\text{tr}\left(\Sigma_2^{-1}\left(\Sigma_1 + (\mu_1 - \mu_2)(\mu_1-\mu_2)^\top\right)\right) \nonumber \\
+&= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{D}{2} + \frac{1}{2}\text{tr}(\Sigma_2^{-1}\Sigma_1) + \frac{1}{2}(\mu_1-\mu_2)^\top\Sigma_2^{-1}(\mu_1 - \mu_2) \nonumber \\
+\end{align}
+$$
+可以看到两个高斯分布的$KL$距离之和均值和协方差矩阵有关，回顾 $q(x_{t-1} | x_{t}, x_0)=\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I})$ 和 $p_{\theta}(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\Sigma_\theta(x_t, t))$，可以将 $\Sigma_\theta(x_t, t)$ 设置为一个只与时间相关的常量 $\sigma_t^2$，这里我们取$\sigma_t^2=\tilde{\beta}_t \mathbf{I}$，于是有
+$$
+\begin{align}
+\mathcal{L}_{t-1} &= KL(q(x_{t-1}|x_t, x_0)||p_\theta(x_{t-1}|x_t)) \nonumber\\
+&= KL(\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I})||\mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\tilde{\beta}_t\mathbf{I})) \nonumber\\
+&=\frac{1}{2}\log\frac{|\tilde{\beta}_t\mathbf{I}|}{|\tilde{\beta}_t\mathbf{I}|} - \frac{D}{2} + \frac{1}{2}\text{tr}((\tilde{\beta}_t\mathbf{I})^{-1}\tilde{\beta}_t\mathbf{I}) + \frac{1}{2}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))^\top(\tilde{\beta}_t\mathbf{I})^{-1}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))\nonumber \\
+&= 0 - \frac{D}{2} + \frac{D}{2} + \frac{1}{2\tilde{\beta}_t}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))^\top(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)) \nonumber \\
+&= \frac{1}{2\tilde{\beta}_t}\|\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)\|^2 \nonumber \\
+
+\end{align}
+$$
+前面我们得到 $\tilde{\mu}_t(x_t,x_0) = \frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right) $，我们可以假定 $\mu_\theta(x_t, t)$ 也具有相同的形式，即
+$$
+\mu_\theta(x_t, t) = \frac{1}{\sqrt{{\alpha}_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t) \right) \nonumber \\
+$$
+
+于是可以进一步简化损失，
+$$
+\begin{align}
+\mathcal{L}_{t-1} &= \frac{1}{2\tilde{\beta}_t}\|\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)\|^2 \nonumber \\
+&= \frac{1}{2\tilde{\beta}_t}\|\frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right)-\frac{1}{\sqrt{{\alpha}_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t) \right)\|^2 \nonumber \\
+& = \frac{\beta_t^2}{2\tilde{\beta}_t{\alpha}_t(1-\bar{\alpha}_t)} \|\epsilon - \epsilon_\theta(x_t, t)\|^2 \nonumber \\
+& = \frac{\beta_t^2}{2\tilde{\beta}_t{\alpha}_t(1-\bar{\alpha}_t)} \|\epsilon - \epsilon_\theta(\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon, t)\|^2
+
 \end{align}
 $$
