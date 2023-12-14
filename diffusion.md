@@ -11,22 +11,24 @@
 ![DDPM](./src/diffusion/diffusion_1.png)
 
 ## 前向扩散过程 (Forward diffusion process)
-给定一个数据点$x_0 \sim q(x_0)$, 前向过程被定义为逐步（总共T步）向样本添加少量高斯噪声，产生一系列的噪声样本$x_1, x_2, \cdots, x_T$。步长由方差控制$\{\beta_t\in(0,1)\}_{t=1}^T$，其中有$0<\beta_1<\beta_2<\cdots<\beta_T<1$。
+给定一个数据点 $x_0 \sim q(x_0)$ , 前向过程被定义为逐步（总共T步）向样本添加少量高斯噪声，产生一系列的噪声样本 $x_1, x_2, \cdots, x_T$ 。步长由方差控制 $\{\beta_t\in(0,1)\}_{t=1}^T$ ，其中有 $0<\beta_1<\beta_2<\cdots<\beta_T<1$ 。
 
-第$t$时刻的前向过程被定义为：
+第 $t$ 时刻的前向过程被定义为：
 $$
 x_t = \sqrt{1-\beta_t} x_{t-1} + \sqrt{\beta_t}\epsilon_{t-1}, \epsilon_{t-1}\sim\mathcal{N}(0, \mathbf{I}). 
 $$
-由于$\epsilon_{t-1}\sim\mathcal{N}(0, \mathbf{I})$，所以给定$x_{t-1}$，$x_{t}$的条件分布可以表示为：
+
+由于 $\epsilon_{t-1}\sim\mathcal{N}(0, \mathbf{I})$ ，所以给定 $x_{t-1}$，$x_{t}$ 的条件分布可以表示为：
 $$
 q(x_{t}|x_{t-1}) = \mathcal{N}(x_t;\sqrt{1-\beta_t}x_{t-1}, \beta_t\mathbf{I}).
 $$
-根据马尔可夫链（Markov chain）的性质，给定$x_0$，$x_{1:T}$的分布可以表示为：
+
+根据马尔可夫链（Markov chain）的性质，给定 $x_0$ ，$x_{1:T}$ 的分布可以表示为：
 $$
-q(x_{1:t}|x_0) =  \Pi_{t=1}^T q(x_t | x_{t-1}). 
+q(x_{1:t}|x_0) = \Pi_{t=1}^T q(x_t | x_{t-1}). 
 $$
 
-给定任意$t\ge1$，$x_t$可以通过以下方式计算，（记 $\alpha_t = 1 - \beta_t, \bar{\alpha}_t = \Pi_{i=1}^t \alpha_i$）：
+给定任意 $t\ge 1$，$x_t$ 可以通过以下方式计算，（记 $\alpha_t = 1 - \beta_t, \bar{\alpha}_t = \Pi_{i=1}^t \alpha_i$ ）：
 $$
 \begin{align}
 x_t &= \sqrt{1-\beta_t} x_{t-1} + \sqrt{\beta_t}\epsilon \nonumber \\
@@ -42,22 +44,25 @@ x_t &= \sqrt{1-\beta_t} x_{t-1} + \sqrt{\beta_t}\epsilon \nonumber \\
 \Longleftrightarrow & \quad p(x_t|x_0) = \mathcal{N}(x_t;\sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)\mathbf{I})\nonumber \\
 \end{align}
 $$
-其中的$\divideontimes$表示的是高斯噪声的合并：
+其中的 $\divideontimes$ 表示的是高斯噪声的合并：
 $$\mathcal{N}(0,\sigma_1^2\mathbf{I}) + \mathcal{N}(0,\sigma_2^2\mathbf{I}) = \mathcal{N}(0,(\sigma_1^2 + \sigma_2^2)\mathbf{I}). $$
-通常当样本变得更嘈杂时，可以添加的噪声也变得更大，于是有前面提到的$0<\beta_1<\beta_2<\cdots<\beta_T<1$，同时有$1>\bar{\alpha}_1>\bar{\alpha}_2>\cdots>\bar{\alpha}_T>0$。可以看到，只要加噪声步数足够多$T\to\infty$，有$\bar{\alpha}_T\to0$，也就是最终得到的是一个标准高斯噪声。
+
+通常当样本变得更嘈杂时，可以添加的噪声也变得更大，于是有前面提到的 $0<\beta_1<\beta_2<\cdots<\beta_T<1$ ，同时有 $1>\bar{\alpha}_1>\bar{\alpha}_2>\cdots>\bar{\alpha}_T>0$ 。可以看到，只要加噪声步数足够多 $T\to\infty$ ，有 $\bar{\alpha}_T\to0$ ，也就是最终得到的是一个标准高斯噪声。
 
 ## 逆扩散过程 （Reverse diffusion process）
-如果我们可以将前向过程反转，从$q(x_{t-1}|x_t)$中逐步采样，那么我们就可以将一个给定的高斯噪声$x_t\in \mathcal{N}(0,\mathbf{I})$还原成真实样本。（假设$\beta_t$足够小时，$q(x_{t-1}|x_t)$也会是一个高斯分布。）但是估计$q(x_{t-1}|x_t)$需要整个数据集，这是不容易的。于是转而去学习一个模型$p_\theta$能够近似这些条件概率，以便可以完成反向过程：
+如果我们可以将前向过程反转，从 $q(x_{t-1}|x_t)$ 中逐步采样，那么我们就可以将一个给定的高斯噪声 $x_t\in \mathcal{N}(0,\mathbf{I})$ 还原成真实样本。（假设 $\beta_t$ 足够小时， $q(x_{t-1}|x_t)$ 也会是一个高斯分布。）但是估计 $q(x_{t-1}|x_t)$ 需要整个数据集，这是不容易的。于是转而去学习一个模型 $p_\theta$ 能够近似这些条件概率，以便可以完成反向过程：
 $$
 p_{\theta}(x_{0:T}) = p(x_t)\Pi_{t=1}^T p_{\theta}(x_{t-1}|x_t)
 $$
+
 如果将反向过程看作是一个高斯过程，那么有
 $$
 \begin{align}
 p_{\theta}(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\Sigma_\theta(x_t, t)) \nonumber
 \end{align}
 $$
-那么优化目标是什么呢？或者说如何训练呢？这里使用常用的极大似然估计法，也称之为最小化负对数似然（记$z=x_{1:T},x=x_0$）：
+
+那么优化目标是什么呢？或者说如何训练呢？这里使用常用的极大似然估计法，也称之为最小化负对数似然（记 $z=x_{1:T},x=x_0$ ）：
 $$
 \begin{align}
 \mathbb{E}_{x\sim q(x)}[-\log p_\theta(x)] &= \int_x q(x)[-\log p_\theta(x)] dx \nonumber \\
@@ -71,6 +76,7 @@ $$
 & \le  \mathbb{E}_{x,z\sim q(x,z)}[-\log \frac{p_\theta(x, z)}{q(z | x)}] = \mathcal{L}_{EVLB}\nonumber
 \end{align}
 $$
+
 优化右边的上界(从变分法看，应该有什么理论证明)，先变换变换 
 $$
 \begin{align}
@@ -87,8 +93,9 @@ x_0)} \bcancel{q(x_1|x_0)}}]\nonumber \\
 &=\underset{E_1}{\underbrace{\mathbb{E}_{x_{0:T}}\log \frac{q(x_T|x_0)}{p(x_T)}}} + \underset{E_2}{\underbrace{\sum_{t=2}^T \mathbb{E}_{x_{0:T}} \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}}} - \mathbb{E}_{x_{0:T}}\log p_{\theta}(x_0|x_1) \nonumber \\
 \end{align}
 $$
+
 我们先引入几条简单的期望的变换公式：
-- 消除不包含的变量 $\mathbb{E}_{x,y\sim p(x,y)}[f(x)] = \mathbb{E}_{x\sim p(x)}[f(x)]$
+- 消除不包含的变量 $\mathbb{E}_{x,y\sim p(x,y)}[f(x)] = \mathbb{E}_{x\sim p(x)}[f(x)]$ ，证明：
 $$
 \begin{align}
 \mathbb{E}_{x,y\sim p(x,y)}[f(x)] &= \int_{x,y} p(x, y) f(x) dxdy \nonumber \\
@@ -98,7 +105,7 @@ $$
 \end{align}
 $$
 
-- 进行条件概率运算变换，即$\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] = \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)]$
+- 进行条件概率运算变换，即 $\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] = \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)]$ ，证明：
 $$
 \begin{align}
 \mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] &= \int_{x,y} p(x, y) f(x,y) dxdy \nonumber \\
@@ -108,7 +115,7 @@ $$
 \end{align}
 $$
 
-- 添加任意无关的变量，即$\mathbb{E}_{x\sim p(x)}[f(x)] =\mathbb{E}_{x,y\sim p(x,y)}[f(x)]$，前提是 $\exist x, y,\,\,p(x,y) > 0$
+- 添加任意无关的变量，即 $\mathbb{E}_{x\sim p(x)}[f(x)] =\mathbb{E}_{x,y\sim p(x,y)}[f(x)]$ ，前提是 $\exist x, y,\,\,p(x,y) > 0$ ，证明：
 $$
 \begin{align}
 \mathbb{E}_{x\sim p(x)}[f(x)] &= \int_x p(x)f(x) dx \nonumber \\
@@ -117,7 +124,8 @@ $$
 &= \mathbb{E}_{x,y\sim p(x,y)}[f(x)] \nonumber \\
 \end{align}
 $$
-根据上诉三个公式，变换$E_1$：
+
+根据上诉三个公式，变换 $E_1$ ：
 $$
 \begin{align}
 \mathbb{E}_{x_{0:T}}[\log \frac{q(x_T|x_0)}{p(x_T)}]& = \mathbb{E}_{x_{0}, x_{T}}[\log \frac{q(x_T|x_0)}{p(x_T)}] \nonumber \\
@@ -138,8 +146,7 @@ $$
 % \end{align}
 $$
 
-
-继续变换$E_2$：
+继续变换 $E_2$：
 $$
 \begin{align}
 \sum_{t=2}^T \mathbb{E}_{x_{0:T}}[ \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}] &= \sum_{t=2}^T \mathbb{E}_{x_{0}, x_{t-1}, x_{t}}[ \log \frac{q(x_{t-1} | x_{t}, x_0)}{p_{\theta}(x_{t-1}|x_t)}] \nonumber \\
@@ -148,14 +155,15 @@ $$
 &= \sum_{t=2}^T \mathbb{E}_{x_{0:T}} [KL(q(x_{t-1} | x_{t}, x_0)||p_{\theta}(x_{t-1}|x_t))] \nonumber \\
 \end{align} 
 $$
+
 于是损失函数可以变换为：
 $$
 \mathcal{L}_{EVLB} = \mathbb{E}_{x_{0:T}}\left[ \underset{\mathcal{L}_T}{\underbrace{KL(q(x_T|x_0)||p(x_T))}} + \underset{\mathcal{L}_{t-1}, t=2, \cdots, T}{\underbrace{\sum_{t=2}^T KL(q(x_{t-1} | x_{t}, x_0)||p_{\theta}(x_{t-1}|x_t))}} \underset{\mathcal{L}_0}{\underbrace{- \log p_{\theta}(x_0|x_1)}} \right]
 $$
 
-在上面公式中，可以将损失函数划分为$\mathcal{L}_{T}$，$\mathcal{L}_{t-1}$和$\mathcal{L}_{0}$三个部分，其中$\mathcal{L}_{T}$是两个高斯分布之间的$KL$距离（实际上是希望保证前向过程最终得到的是高斯噪声，而前向过程没有可学参数，而$x_T$在逆过程中本来就是从高斯噪声中采样的，于是这一项是个与$\theta$无关的）。$\mathcal{L}_{t-1}$是噪声匹配损失，希望网络能够学到每一个前向过程（给定$x_0$）的逆过程。$\mathcal{L}_{0}$是最终的重建损失，从噪声样本还原至真实样本。
+在上面公式中，可以将损失函数划分为 $\mathcal{L}_{T}$，$\mathcal{L}_{t-1}$ 和 $\mathcal{L}_{0}$ 三个部分，其中 $\mathcal{L}_{T}$ 是两个高斯分布之间的 $KL$ 距离（实际上是希望保证前向过程最终得到的是高斯噪声，而前向过程没有可学参数，而 $x_T$ 在逆过程中本来就是从高斯噪声中采样的，于是这一项是个与 $\theta$ 无关的）。$\mathcal{L}_{t-1}$ 是噪声匹配损失，希望网络能够学到每一个前向过程（给定 $x_0$）的逆过程。 $\mathcal{L}_{0}$ 是最终的重建损失，从噪声样本还原至真实样本。
 
-接下来的问题就是$q(x_{t-1} | x_{t}, x_0)$是什么的问题，通过条件概率公式，我们有
+接下来的问题就是 $q(x_{t-1} | x_{t}, x_0)$ 是什么的问题，通过条件概率公式，我们有
 $$
 \begin{align}
 q(x_{t-1}|x_{t}, x_{0}) &= \frac{q(x_{t-1}, x_{t}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1}, x_{0})q(x_{t-1}, x_{0})}{q(x_{t}, x_{0})} = \frac{q(x_{t}|x_{t-1})q(x_{t-1}| x_{0})}{q(x_{t}| x_{0})} \nonumber \\
@@ -166,7 +174,8 @@ q(x_{t-1}|x_{t}, x_{0}) &= \frac{q(x_{t-1}, x_{t}, x_{0})}{q(x_{t}, x_{0})} = \f
 &= \lambda \exp \left[-\frac{\left( x_{t-1} - \left(\frac{\sqrt{\alpha_t}}{\beta_t} x_t + \frac{\sqrt{\bar{\alpha}_{t-1}}}{1 - \bar{\alpha}_{t-1}}x_0\right)/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)\right)^2}{2\cdot 1/\left(\frac{\alpha_t}{\beta_t} + \frac{1}{1-{\bar{\alpha}_{t-1}}} \right)}\right] \nonumber \\
 \end{align}
 $$
-可以看到$q(x_{t-1} | x_{t}, x_0)$符合一个整体放缩的高斯分布的概率密度，通过积分等于一可以得到具体的$\lambda$的值，也就是说上述公式完全决定了$q(x_{t-1} | x_{t}, x_0)$就是一个高斯分布，并且其均值和方差都决定了，分别为：
+
+可以看到 $q(x_{t-1} | x_{t}, x_0)$ 符合一个整体放缩的高斯分布的概率密度，通过积分等于一可以得到具体的 $\lambda$ 的值，也就是说上述公式完全决定了 $q(x_{t-1} | x_{t}, x_0)$ 就是一个高斯分布，并且其均值和方差都决定了，分别为：
 $$
 \begin{align}
 &q(x_{t-1} | x_{t}, x_0)=\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I}) \nonumber \\
@@ -177,7 +186,7 @@ $$
 &= \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t\sqrt{\bar{\alpha}_{t-1}}x_0}{1-\bar{\alpha}_t} \nonumber \\
 \end{align}
 $$
-回顾$x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_{t}}\epsilon$, 可以有$x_0 =  \frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)$，于是有
+回顾 $x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_{t}}\epsilon$ ，可以有 $x_0 =  \frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)$ ，于是有
 $$
 \begin{align}
 \tilde{\mu}_t(x_t,x_0)& = \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t\sqrt{\bar{\alpha}_{t-1}}\frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)}{1-\bar{\alpha}_t} \nonumber \\
@@ -207,7 +216,7 @@ $$
 &= \frac{1}{2}\log\frac{|\Sigma_2|}{|\Sigma_1|} - \frac{D}{2} + \frac{1}{2}\text{tr}(\Sigma_2^{-1}\Sigma_1) + \frac{1}{2}(\mu_1-\mu_2)^\top\Sigma_2^{-1}(\mu_1 - \mu_2) \nonumber \\
 \end{align}
 $$
-可以看到两个高斯分布的$KL$距离之和均值和协方差矩阵有关，回顾 $q(x_{t-1} | x_{t}, x_0)=\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I})$ 和 $p_{\theta}(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\Sigma_\theta(x_t, t))$，可以将 $\Sigma_\theta(x_t, t)$ 设置为一个只与时间相关的常量 $\sigma_t^2$，这里我们取$\sigma_t^2=\tilde{\beta}_t \mathbf{I}$，于是有
+可以看到两个高斯分布的$KL$距离之和均值和协方差矩阵有关，回顾 $q(x_{t-1} | x_{t}, x_0)=\mathcal{N}(x_{t-1};\tilde{\mu}_t(x_t,x_0), \tilde{\beta}_t\mathbf{I})$ 和 $p_{\theta}(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\Sigma_\theta(x_t, t))$，可以将 $\Sigma_\theta(x_t, t)$ 设置为一个只与时间相关的常量 $\sigma_t^2$，这里我们取 $\sigma_t^2=\tilde{\beta}_t \mathbf{I}$ ，于是有
 $$
 \begin{align}
 \mathcal{L}_{t-1} &= KL(q(x_{t-1}|x_t, x_0)||p_\theta(x_{t-1}|x_t)) \nonumber\\
@@ -217,7 +226,7 @@ $$
 &= \frac{1}{2\tilde{\beta}_t}\|\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)\|^2 \nonumber \\
 \end{align}
 $$
-前面我们得到 $\tilde{\mu}_t(x_t,x_0)=\frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right)$，我们可以假定 $\mu_\theta(x_t, t)$ 也具有相同的形式，即
+前面我们得到 $\tilde{\mu}_t(x_t,x_0)=\frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right)$ ，我们可以假定 $\mu_\theta(x_t, t)$ 也具有相同的形式，即
 $$
 \mu_\theta(x_t, t) = \frac{1}{\sqrt{{\alpha}_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t) \right) \nonumber \\
 $$
@@ -232,7 +241,7 @@ $$
 \end{align}
 $$
 
-那么还剩下一项 $\mathcal{L}_0$ 重建损失，前面已经得知 $p(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t), \tilde{\beta}_t\mathbf{I})$，那么直接可得，
+那么还剩下一项 $\mathcal{L}_0$ 重建损失，前面已经得知 $p(x_{t-1}|x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t), \tilde{\beta}_t\mathbf{I})$ ，那么直接可得，
 $$
 \begin{align}
 p(x_0|x_1) &= \Pi_{i=1}^D p(x_0^i | x_1 ) \nonumber \\
