@@ -62,9 +62,9 @@ $$
 J_{ESM}(\theta) &= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta) - \triangledown_x \log p(x)\|^2 \right] \nonumber \\
 &= \int_x p(x) \left[\frac{1}{2}\|s(x;\theta) - \triangledown_x \log p(x)\|^2 \right] dx \nonumber \\
 &= \int_x p(x) \left[\frac{1}{2}(s(x;\theta))^2 + \frac{1}{2}(\triangledown_x \log p(x))^2 - s(x;\theta)^\top\triangledown_x \log p(x) \right] dx \nonumber \\
-&= \int_x p(x) \left[\frac{1}{2}(s(x;\theta))^2 - \frac{1}{p(x)}s(x;\theta)^\top\triangledown_x p(x) \right] dx + C_1(x) \nonumber \\
-&= \int_x p(x) \frac{1}{2}(s(x;\theta))^2 dx - \int_x s(x;\theta)^\top\triangledown_x p(x) dx + C_1(x) \nonumber \\
-&= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta)\|^2\right] - \int_x s(x;\theta)^\top\triangledown_x p(x) dx + C_1(x) \nonumber \\
+&= \int_x p(x) \left[\frac{1}{2}(s(x;\theta))^2 - \frac{1}{p(x)}s(x;\theta)^\top\triangledown_x p(x) \right] dx + C_1 \nonumber \\
+&= \int_x p(x) \frac{1}{2}(s(x;\theta))^2 dx - \int_x s(x;\theta)^\top\triangledown_x p(x) dx + C_1 \nonumber \\
+&= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta)\|^2\right] - \int_x s(x;\theta)^\top\triangledown_x p(x) dx + C_1 \nonumber \\
 \end{align}
 $$
 
@@ -84,8 +84,8 @@ $$
 于是 $J_{ESM}$ 可以转换成：
 $$
 \begin{align}
-J_{ESM}(\theta) &= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta)\|^2\right] + \mathbb{E}_p \left[\text{tr}\left({\triangledown_x s(x;\theta)} \right)\right] + C_1(x) \nonumber \\
-&= \mathbb{E}_p \left[\text{tr}\left({\triangledown_x s(x;\theta)} \right) + \frac{1}{2}\|s(x;\theta)\|^2\right] + C_1(x) \nonumber \\
+J_{ESM}(\theta) &= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta)\|^2\right] + \mathbb{E}_p \left[\text{tr}\left({\triangledown_x s(x;\theta)} \right)\right] + C_1 \nonumber \\
+&= \mathbb{E}_p \left[\text{tr}\left({\triangledown_x s(x;\theta)} \right) + \frac{1}{2}\|s(x;\theta)\|^2\right] + C_1 \nonumber \\
 \end{align}
 $$
 
@@ -93,4 +93,28 @@ $$
 $$
 J_{ISM}(\theta) = \mathbb{E}_p \left[\text{tr}\left({\triangledown_x s(x;\theta)} \right) + \frac{1}{2}\|s(x;\theta)\|^2\right]
 $$
-可以看到 $J_{ESM}(\theta) = J_{ISM}(\theta) + C_1(x)$，也就是说优化 $J_{ESM}$ 和 优化$J_{ISM}$ 是等价的。
+可以看到 $J_{ESM}(\theta) = J_{ISM}(\theta) + C_1$，也就是说优化 $J_{ESM}$ 和 优化$J_{ISM}$ 是等价的。
+
+通过 $J_{ISM}$，我们不需要知道 $p(x)$ 的具体是什么分布，我们就可以优化 $s(x;\theta)$。
+
+值得注意的是，前面的推导过程涉及到了以下几个假设：
+- $p(x)$，$s(x;\theta)$ 可微
+- $\mathbb{E}_p \left[\|\triangledown_x \log p(x)\|^2\right]$ 有界
+- $\forall \theta, \mathbb{E}_p \left[\|s(x;\theta)\|^2\right]$ 有界
+- $\lim_{\|x\|\to\infty}p(x)s(x;\theta) = 0$ 
+
+$J_{ISM}(\theta)$ 的采样形式可以表达为：
+$$
+\hat{J}_{ISM}(\theta) = \frac{1}{N}\sum_{i=1}^N \left[\text{tr}\left({\triangledown_x s(x_i;\theta)} \right) + \frac{1}{2}\|s(x_i;\theta)\|^2\right]
+$$
+
+### Slice Score Matching （切片）
+虽然 $J_{ISM}$ 提供了一种可行的优化方式，但是注意到其中有一项是计算 Hessian 矩阵（只计算对角线即可），这涉及到需要多次求梯度。当数据维度很高，例如图像，语音等可能成千上万个维度，则需要成千上万次求梯度，这些显然是不合理的。
+
+于是 Song et al. 提出了 SSM，其损失函数被定义为：
+$$
+J_{SSM}(\theta) = \mathbb{E}_{p_v} \mathbb{E}_{p_x} \left[v^\top{\triangledown_x s(x;\theta)}v + \frac{1}{2}(v^\top s(x;\theta))^2\right]
+$$
+这时候通过一次梯度回传可计算损失的梯度，具体过程如图：
+![SSM](./src/score_matching/score_matching_1.png)
+文章 [Sliced Score Matching: A Scalable Approach to Density and Score Estimation](https://arxiv.org/pdf/1905.07088.pdf) 详细证明了 $J_{SSM}$ 和 $J_{ISM}$ 是等价的。
