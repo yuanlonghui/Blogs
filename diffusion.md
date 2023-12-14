@@ -8,7 +8,7 @@
 
 ## 什么是扩散模型
 扩散模型的灵感来自非平衡热力学。他们定义了扩散步骤的马尔可夫链，以缓慢地将随机噪声添加到数据中，然后学习反转扩散过程以从噪声构建所需的数据样本。
-![扩散过程](./src/diffusion/diffusion_1.png)
+![DDPM](./src/diffusion/diffusion_1.png)
 
 ## 前向扩散过程 (Forward diffusion process)
 给定一个数据点$x_0 \sim q(x_0)$, 前向过程被定义为逐步（总共T步）向样本添加少量高斯噪声，产生一系列的噪声样本$x_1, x_2, \cdots, x_T$。步长由方差控制$\{\beta_t\in(0,1)\}_{t=1}^T$，其中有$0<\beta_1<\beta_2<\cdots<\beta_T<1$。
@@ -98,7 +98,7 @@ $$
 \end{align}
 $$
 
-- 进行条件概率运算变换，即$\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] = \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)] $
+- 进行条件概率运算变换，即$\mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] = \mathbb{E}_{x\sim p(x)}\mathbb{E}_{y \sim p(y|x)} [f(x,y)]$
 $$
 \begin{align}
 \mathbb{E}_{x, y\sim p(x, y)}[f(x, y)] &= \int_{x,y} p(x, y) f(x,y) dxdy \nonumber \\
@@ -185,8 +185,7 @@ $$
 & = \frac{{\alpha_t}(1-\bar{\alpha}_{t-1})x_t + \beta_t(x_t - \sqrt{1-\bar{\alpha}_{t}}\epsilon)}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
 & = \frac{({\alpha_t}-\bar{\alpha}_{t})x_t + (1 - \alpha_t) x_t - (1 - \alpha_t) \sqrt{1-\bar{\alpha}_{t}}\epsilon}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
 & = \frac{(1-\bar{\alpha}_{t})x_t - (1 - \alpha_t) \sqrt{1-\bar{\alpha}_{t}}\epsilon}{(1-\bar{\alpha}_t)\sqrt{{\alpha}_t}} \nonumber \\
-&= \frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right) \nonumber
-
+&= \frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right) \nonumber \\
 \end{align}
 $$
 
@@ -216,10 +215,9 @@ $$
 &=\frac{1}{2}\log\frac{|\tilde{\beta}_t\mathbf{I}|}{|\tilde{\beta}_t\mathbf{I}|} - \frac{D}{2} + \frac{1}{2}\text{tr}((\tilde{\beta}_t\mathbf{I})^{-1}\tilde{\beta}_t\mathbf{I}) + \frac{1}{2}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))^\top(\tilde{\beta}_t\mathbf{I})^{-1}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))\nonumber \\
 &= 0 - \frac{D}{2} + \frac{D}{2} + \frac{1}{2\tilde{\beta}_t}(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t))^\top(\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)) \nonumber \\
 &= \frac{1}{2\tilde{\beta}_t}\|\tilde{\mu}_t(x_t,x_0)-\mu_\theta(x_t, t)\|^2 \nonumber \\
-
 \end{align}
 $$
-前面我们得到 $\tilde{\mu}_t(x_t,x_0) = \frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right) $，我们可以假定 $\mu_\theta(x_t, t)$ 也具有相同的形式，即
+前面我们得到 $\tilde{\mu}_t(x_t,x_0)=\frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right)$，我们可以假定 $\mu_\theta(x_t, t)$ 也具有相同的形式，即
 $$
 \mu_\theta(x_t, t) = \frac{1}{\sqrt{{\alpha}_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t) \right) \nonumber \\
 $$
@@ -231,7 +229,6 @@ $$
 &= \frac{1}{2\tilde{\beta}_t}\|\frac{1}{\sqrt{{\alpha}_t}}\left(x_t -\frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_{t}}}\epsilon\right)-\frac{1}{\sqrt{{\alpha}_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t) \right)\|^2 \nonumber \\
 & = \frac{\beta_t^2}{2\tilde{\beta}_t{\alpha}_t(1-\bar{\alpha}_t)} \|\epsilon - \epsilon_\theta(x_t, t)\|^2 \nonumber \\
 & = \frac{\beta_t^2}{2\tilde{\beta}_t{\alpha}_t(1-\bar{\alpha}_t)} \|\epsilon - \epsilon_\theta(\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon, t)\|^2 \nonumber
-
 \end{align}
 $$
 
@@ -258,7 +255,7 @@ p(x_0|x_1) &= \Pi_{i=1}^D p(x_0^i | x_1 ) \nonumber \\
 \end{align}
 $$
 之所以这么计算是因为DDPM认为输入时将图片从[0, 255]压缩为[-1, 1]，由于取值是离散的，于是采用周围区间积分值作为概率值。具体可见下图所示：
-![重建损失](./src/diffusion/diffusion_2.png)
+![重建似然估计](./src/diffusion/diffusion_2.png)
 
 于此同时，DDPM还提出了一种简化训练的方式，即去除所有噪声匹配的权重和最后的重建损失，计算如下：
 $$
@@ -268,7 +265,7 @@ $$
 \end{align}
 $$
 最终，训练和采样算法如下：
-![算法](./src/diffusion/diffusion_3.png)
+![训练和采样算法](./src/diffusion/diffusion_3.png)
 
 值得注意的是，采样过程实际上就是 $p(x_{t-1}| x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t), \tilde{\beta}_t\mathbf{I})$，也就是
 $$
