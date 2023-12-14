@@ -8,7 +8,7 @@
 
 ## 什么是扩散模型
 扩散模型的灵感来自非平衡热力学。他们定义了扩散步骤的马尔可夫链，以缓慢地将随机噪声添加到数据中，然后学习反转扩散过程以从噪声构建所需的数据样本。
-![DDPM](./src/diffusion/diffusion_1.png)
+![DDPM](./src/diffusion/ddpm_framework.png)
 
 ## 前向扩散过程 (Forward diffusion process)
 给定一个数据点 $x_0 \sim q(x_0)$ , 前向过程被定义为逐步（总共T步）向样本添加少量高斯噪声，产生一系列的噪声样本 $x_1, x_2, \cdots, x_T$ 。步长由方差控制 $\{\beta_t\in(0,1)\}_{t=1}^T$ ，其中有 $0<\beta_1<\beta_2<\cdots<\beta_T<1$ 。
@@ -264,7 +264,7 @@ p(x_0|x_1) &= \Pi_{i=1}^D p(x_0^i | x_1 ) \nonumber \\
 \end{align}
 $$
 之所以这么计算是因为DDPM认为输入时将图片从[0, 255]压缩为[-1, 1]，由于取值是离散的，于是采用周围区间积分值作为概率值。具体可见下图所示：
-![重建似然估计](./src/diffusion/diffusion_2.png)
+![重建似然估计](./src/diffusion/reconstrution.png)
 
 于此同时，DDPM还提出了一种简化训练的方式，即去除所有噪声匹配的权重和最后的重建损失，计算如下：
 $$
@@ -274,7 +274,7 @@ $$
 \end{align}
 $$
 最终，训练和采样算法如下：
-![训练和采样算法](./src/diffusion/diffusion_3.png)
+![训练和采样算法](./src/diffusion/training_sampling.png)
 
 值得注意的是，采样过程实际上就是 $p(x_{t-1}| x_t) = \mathcal{N}(x_{t-1};\mu_\theta(x_t, t), \tilde{\beta}_t\mathbf{I})$，也就是
 $$
