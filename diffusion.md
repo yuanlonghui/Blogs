@@ -271,7 +271,7 @@ $$
 $$
 \begin{align}
 x_{t-1} &= \mu_\theta(x_t, t)+\sqrt{\tilde{\beta}_t} \epsilon \nonumber \\
-&= \frac{1}{\sqrt{\alpha_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\hat{\alpha}_t}}\epsilon_\theta(x_t, t)\right) + \sqrt{\tilde{\beta}_t} \epsilon \nonumber
+&= \frac{1}{\sqrt{\alpha_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t)\right) + \sqrt{\tilde{\beta}_t} \epsilon \nonumber
 \end{align}
 $$
 图中算法 $2$ 在 $t = 1$ 时，直接采用 $x_0 = \mu_\theta(x_t, t)$ 忽略最后的加噪部分。
