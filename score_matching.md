@@ -192,7 +192,7 @@ NCSN 采用的思想是：通过给原始数据分布加入从小到大的高斯
 
 我们采用 $s(x,\sigma;\theta)$ 去估计 $\triangledown_{\tilde{x}} \log p_{\sigma}(\tilde{x})$，训练的目标函数如下：
 $$
-\ell(\theta;\sigma)=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)+\frac{\tilde{x}-x}{\sigma^2}\right\|^2\right]
+\ell(\theta;\sigma)=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)-\triangledown_{\tilde{x}} \log p(\tilde{x}|x)\right\|^2\right]=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)+\frac{\tilde{x}-x}{\sigma^2}\right\|^2\right]
 $$
 
 总的训练损失为：
@@ -207,3 +207,36 @@ $$
 对于采样的过程，按照我们前面提到的方式进行采样：
 
 ![Annealed Langevin Dynamic](./src/score_matching/ALD.png)
+
+### Connection with DDPM
+在 DDPM 的前向过程中，我们知道：
+$$
+x_{t} = \sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon, \epsilon \sim \mathcal{N}(0,\mathbf{I})
+$$
+我们也可用基于 DSM 的方式去建模 $\triangledown_{x_{t}}\log p(x_{t}|x_0)$，其损失函数为：
+$$
+\mathcal{L} = \mathbb{E}_{t\sim U(1, T)}\mathbb{E}_{x_0 \sim q_0(x_0)}\mathbb{E}_{x_t\sim q(x_t| x)} \lambda(t) \|s(x_t,t) - \triangledown_{x_{t}}\log p(x_{t}|x_0)\|^2
+$$
+
+根据前面的重参数化技巧我们知道：
+$$
+\triangledown_{x_{t}}\log p(x_{t}|x_0) = - \triangledown_{x_{t}} \frac{(x_t - \sqrt{\bar{\alpha}_t}x_0)^2}{2 (1-\bar{\alpha}_t)} = - \frac{\epsilon}{\sqrt{1-\bar{\alpha}_t}}
+$$
+
+损失函数变为：
+$$
+\mathcal{L} = \mathbb{E}_{t\sim U(1, T)}\mathbb{E}_{x_0 \sim q_0(x_0)}\mathbb{E}_{\epsilon\sim \mathcal{N}(0,\mathbf{I})} \lambda(t)\Big\|[-s(\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon,t)] - \frac{\epsilon}{\sqrt{1-\bar{\alpha}_t}}\Big\|^2 \\
+= \mathbb{E}_{t\sim U(1, T)}\mathbb{E}_{x_0 \sim q_0(x_0)}\mathbb{E}_{\epsilon\sim \mathcal{N}(0,\mathbf{I})} \frac{\lambda(t)}{1-\bar{\alpha}_t} \Big\|[-\sqrt{1-\bar{\alpha}_t}s(\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon,t)] - \epsilon \Big\|^2
+$$
+
+取 $\lambda(t) = 1-\bar{\alpha}_t$，有：
+$$
+\mathcal{L} = \mathbb{E}_{t\sim U(1, T)}\mathbb{E}_{x_0 \sim q_0(x_0)}\mathbb{E}_{\epsilon\sim \mathcal{N}(0,\mathbf{I})} \Big\|[-\sqrt{1-\bar{\alpha}_t}s(\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon,t)] - \epsilon \Big\|^2
+$$
+
+观察 DDPM 原始简化训练目标我们有：
+$$
+s(x,t) = -\frac{\epsilon(x,t)}{\sqrt{1-\bar{\alpha}_t}}
+$$
+
+也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching。
