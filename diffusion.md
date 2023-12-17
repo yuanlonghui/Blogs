@@ -1,10 +1,12 @@
 # Diffusion models (扩散模型)
 
-## TO Read
+<!-- ## TO Read
 - 随机梯度Langevin动力学
 - VAE
 - Energy model
-- SDE 
+- SDE  -->
+
+- [Home](./README.md)
 
 ## 什么是扩散模型
 扩散模型的灵感来自非平衡热力学。他们定义了扩散步骤的马尔可夫链，以缓慢地将随机噪声添加到数据中，然后学习反转扩散过程以从噪声构建所需的数据样本。
