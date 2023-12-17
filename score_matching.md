@@ -53,7 +53,7 @@ $$
 
 虽然目前不知道如何优化网络，不过我们可以知道的是，假设网络 $s(x;\theta)$ 能力足够，那么其最优解：
 $$
-\theta^* = \argmax_\theta J_{ESM} (\theta)
+\theta^* = \argmin_\theta J_{ESM} (\theta)
 $$
 应该对于 $x\in\mathbb{R}^d$，几乎处处满足 $s(x;\theta^*)=\triangledown_x\log p(x)$。（对于平方和中的每一项，想要取得最小值0，只有每一项都取0，由于是积分，所以可以存在一些点不满足）
 
@@ -194,7 +194,8 @@ NCSN 采用的思想是：通过给原始数据分布加入从小到大的高斯
 
 我们采用 $s(x,\sigma;\theta)$ 去估计 $\triangledown_{\tilde{x}} \log p_{\sigma}(\tilde{x})$，训练的目标函数如下：
 $$
-\ell(\theta;\sigma)=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)-\triangledown_{\tilde{x}} \log p(\tilde{x}|x)\right\|^2\right]=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)+\frac{\tilde{x}-x}{\sigma^2}\right\|^2\right]
+\ell(\theta;\sigma)=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)-\triangledown_{\tilde{x}} \log p(\tilde{x}|x)\right\|^2\right] \\
+=\mathbb{E}_{p(x)}\mathbb{E}_{\tilde{x}\sim\mathcal{N}(x,\sigma^2\mathbf{I})} \left[\frac12\left\|s(\tilde{x},\sigma;\theta)+\frac{\tilde{x}-x}{\sigma^2}\right\|^2\right]
 $$
 
 总的训练损失为：
