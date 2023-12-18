@@ -2,52 +2,103 @@
 
 - [Home](./README.md)
 
-## Energy based model （能量模型）
-我们从一个典型的未归一化的的概率模型讲起：能量模型是一种使用能量函数描述样本合乎真实分布的程度，用 $E:\mathbb{R}^{d} \to \mathbb{R}$ 表示，一般来说，能量越低，样本越合乎真实分布。能量函数可以看作是一个未归一化的概率，样本的能量越低，似然越高。具体来说，我们可以用以下公式转换为概率密度：
+## Generative Models
+现存的生成模型组要可以分为两种：
+- likelihood-based models：通过极大似然估计直接学习分布的概率密度函数 $p(x)$，包括 自回归模型（autoregressive models），标准化流模型（normalizing flow models），能量模型（energy-based models），变分自编码器（ variational auto-encoders）
+- implicit generative models：概率分布被模型采样过程隐式表达，典型例子是 对抗生成网络（GAN）。
+
+上述方法各有优劣，不赘述，今天主要聚焦于从 likelihood-based models 遇到的问题引出 score function，给出几种等价的学习 score function 的方法，并且介绍 DSM 和 DDPM 的联系。
+
+## Likelihood-based Models
+从一个问题出发：给定训练集 $\{x_i\}_{i=1}^N$，拟合其数据分布 $p(x)$。
+采用极大似然估计的方式，我们大概可以分为以下几个步骤：
+- 定义一个模型 $q(\cdot;\theta): \mathbb{R}^d\to\mathbb{R}^{+}$，并且 $q(x;\theta)$ 越大那么 $p(x)$ 越大。为了使得概率密度积分等于 $1$，我们可以定义 
+$$p(x;\theta)=\frac{1}{Z(\theta)}q(x;\theta), Z(\theta)=\int_x q(x;\theta)dx$$
+- 采用极大似然估计的方式优化模型参数。
+
+**步骤一：定义模型**
+
+为了得到 $\mathbb{R}^d\to\mathbb{R}^{+}$，我们可以先用一个网络完成 $\mathbb{R}^{d}\to\mathbb{R}$，再通过 $\exp$ 运算完成 $\mathbb{R}\to\mathbb{R}^{+}$，具体来说，构建模型 $E(\cdot;\theta):\mathbb{R}^{d} \to \mathbb{R}$，定义 $q(x;\theta)=\exp\big(-E(x;\theta)\big)$，根据上面给出公式我们有：
+$$
+p(x;\theta) = \frac{\exp\big(-E(x;\theta)\big)}{Z(\theta)},Z(\theta)=\int_x \exp\big(-E(x;\theta)\big) dx\,. 
+$$
+
+实际上上面的选择就是能量模型的建模过程。$E(\cdot;\theta)$ 也称之为能量函数，其意义是，能量越低，样本越合乎真实分布。
+
+<!-- 
+能量模型是一种描述样本符合真实分布的程度的模型，一般来说用 $E(\cdot;\theta):\mathbb{R}^{d} \to \mathbb{R}$ 表示。其意义是，能量越低，样本越合乎真实分布。能量函数可以看作是一个未归一化的概率，样本的能量越低，似然越高。具体来说，我们可以用以下公式转换为概率密度：
 $$
 p(x) = \frac{\exp(-E(x))}{Z},Z=\int_x \exp(-E(x)) dx\,. 
 $$
 
 一般来说，我们会用一个网络去建模能量函数，也就是 $E(x;\theta)$，这时候我们有：
-$$
-p(x;\theta) = \frac{\exp(-E(x;\theta))}{Z(\theta)},Z(\theta)=\int_x \exp(-E(x;\theta)) dx\,. 
-$$
+ -->
 
-那训练自然离不开极大似然估计：
+**步骤二：训练**
+
+采用极大似然估计进行训练，损失函数被定义为：
 $$
 \mathcal{L}_{nll} = \sum_{i} - \log p(x_i;\theta) = \sum_{i} \left(\log \sum_{j} \exp(-E(x_j;\theta)) + E(x_i; \theta) \right)
 $$
 
-我们可以看到，其中的第一项需要对整个数据集进行计算，并且为了估计足够准确，采样数量需要足够，这就会使得其计算更加困难。
+我们可以看到，其中的第一项需要对整个数据集进行计算。
 
-简单来说，对于一个未归一化的概率模型 $q(x;\theta)$ 来说，我们可以通过归一化得到真正的概率密度：
+*当然采用采样的方式也能够完成这一项的估计，但是为了估计足够准确，采样数量需要足够，计算仍然很困难*
+
+**问题：**
+
+简单来说，对于一个未归一化的概率模型 $q(x;\theta)$ 来说，我们可以通过归一化得到概率密度：
 $$
 p(x;\theta) = \frac{1}{Z(\theta)}q(x;\theta), Z(\theta) = \int_x q(x;\theta) dx\,.
 $$
 
-而这时想要通过极大似然估计去估计 $\theta$ 将会面临着 $Z(\theta)$ 难以计算的问题。而 score matching 则是想要从另一个角度解决这个问题。
+而这时想要通过极大似然估计去估计 $\theta$ 将会面临着 $Z(\theta)$ 难以计算的问题。
+
+而 score matching 则是想要从另一个角度解决这个问题。
 
 ## Score Matching
 所谓的 Score Function (记为：$s(x)$ ) 实际上是对数似然对样本的梯度，即
 $$
 s(x) = \triangledown_x \log p(x)
 $$
+那 Score Matching 也就是去建模 Score Function.
 
-那么为什么要 score function，一方面大名鼎鼎的 stochastic gradient langevin dynamic (SGLD) 可以通过 score function 从噪声生成真实样本：
-$$
-x_{t+1} = x_t + \frac{\epsilon}{2}\triangledown_x \log p(x) + \sqrt{\epsilon} z,z\sim \mathcal{N}(0, \mathbf{I})
-$$
+需要明确的两点是：
+- Score Matching 需要解决前面提到的 $Z(\theta)$ 难以计算的问题
+- Score Matching 在学习完 Score Function 之后，能够采样生成样本，这是初衷。
 
-另一方面，当我们去建模 score function 的时候，即 $s(x;\theta)$，我们可以发现：
+**$Z(\theta)$ 难以计算**
+
+在给定 $p(x;\theta)$ 之后，当建模 score function 的时候，即 $s(x;\theta)$，我们可以发现：
 $$
 s(x;\theta) = \triangledown_x \log p(x;\theta) = \triangledown_x \log q(x;\theta) - \triangledown_x Z(\theta) = \triangledown_x \log q(x;\theta)
 $$
 这直接避开了难以计算的 $Z(\theta)$ 这一项。
 
-### Explicit Score Matching （显式）
-最简单直接明了的做法是直接用网络拟合对数似然的梯度：
+**采样**
+
+一旦我们训练了好的一个 score function $s(x;\theta)\approx\triangledown_x \log p(x)$ 我们可以使用 朗之万动力学（Langevin Dynamics）生成样本。
+
+<!-- 那么为什么要 score function，一方面大名鼎鼎的 stochastic gradient langevin dynamic (SGLD) 可以通过 score function 从噪声生成真实样本： -->
+Langevin Dynamics (Stochastic Gradient Langevin Dynamic (SGLD)) 提供了一个 MCMC （Markov chain Monte Carlo） 过程，其仅仅使用 score function $\triangledown_x \log p(x)$ 来完成从分布 $p(x)$ 的采样。
+具体来说，它首先从任意先验分布初始化 $x_0\sim\pi(x)$，接着通过以下迭代方式生成样本
 $$
-J_{ESM}(\theta) =  \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta) - s(x)\|^2 \right] = \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta) - \triangledown_x \log p(x)\|^2 \right]
+x_{t+1} = x_t + \frac{\epsilon}{2}\triangledown_x \log p(x) + \sqrt{\epsilon} z,z\sim \mathcal{N}(0, \mathbf{I})
+$$
+其中 $\epsilon$ 是步长，在 $\epsilon$ 足够小，$t$ 足够大的时候，认为样本 $x_{t}$ 是从 $p(x)$ 中采样得到。
+
+下图展示了二维的 Langevin Dynamics 的可视化：
+
+![ld](./src/score_matching/langevin.gif)
+
+注意到 Langevin Dynamics 只用到了 score function 进行采样。当我们得到 $s(x;\theta)\approx\triangledown_x \log p(x)$ 之后，直接将 $s(x;\theta)$ 代入采样即可。
+
+### Explicit Score Matching [1]
+为了学习 score function，最简单的做法是直接拟合对数似然的梯度：
+$$
+J_{ESM}(\theta) =  \mathbb{E}_{p} \left[\frac{1}{2}\|s(x;\theta) - s(x)\|^2 \right] \\
+= \mathbb{E}_{p} \left[\frac{1}{2}\|s(x;\theta) - \triangledown_x \log p(x)\|^2 \right] \\
+% =\mathbb{E}_{p(x)} \left[\frac{1}{2}\|\triangledown_x \log q(x;\theta) - \triangledown_x \log p(x)\|^2 \right] \\
 $$
 虽然 $s(x;\theta)$ 去除了难以计算的 $Z(\theta)$。但是显然，在没有 $p(x)$ 的解析式前提下，$J_{ESM}(\theta)$ 也是无法计算的，我们仍然无法优化网络结构。
 
@@ -57,8 +108,8 @@ $$
 $$
 应该对于 $x\in\mathbb{R}^d$，几乎处处满足 $s(x;\theta^*)=\triangledown_x\log p(x)$。（对于平方和中的每一项，想要取得最小值0，只有每一项都取0，由于是积分，所以可以存在一些点不满足）
 
-### Implicit Score Matching （隐式）
-实际上隐式损失函数是对显示损失函数的一个变换之后的形式，具体推导过程如下：
+### Implicit Score Matching [1]
+虽然 $J_{ESM}(\theta)$ 无法直接优化，但是其中的 $\triangledown_x \log p(x)$ 是与 $\theta$ 无关的。通过一定的变换，我们可以将 $J_{ESM}(\theta)$ 转换为可优化的形式，也就是隐式的 score matching 损失函数，具体推导过程如下：
 $$
 \begin{align}
 J_{ESM}(\theta) &= \mathbb{E}_p \left[\frac{1}{2}\|s(x;\theta) - \triangledown_x \log p(x)\|^2 \right] \nonumber \\
@@ -110,19 +161,21 @@ $$
 \hat{J}_{ISM}(\theta) = \frac{1}{N}\sum_{i=1}^N \left[\text{tr}\left({\triangledown_x s(x_i;\theta)} \right) + \frac{1}{2}\|s(x_i;\theta)\|^2\right]
 $$
 
-### Slice Score Matching （切片）
+### Slice Score Matching [2]
 虽然 $J_{ISM}$ 提供了一种可行的优化方式，但是注意到其中有一项是计算 Hessian 矩阵（只计算对角线即可），这涉及到需要多次求梯度。当数据维度很高，例如图像，语音等可能成千上万个维度，则需要成千上万次求梯度，这些显然是不合理的。
 
 于是 Song et al. 提出了 SSM，其损失函数被定义为：
 $$
 J_{SSM}(\theta) = \mathbb{E}_{p_v} \mathbb{E}_{p_x} \left[v^\top{\triangledown_x s(x;\theta)}v + \frac{1}{2}(v^\top s(x;\theta))^2\right]
 $$
-这时候通过一次梯度回传可计算损失的梯度，具体过程如图：
-![SSM](./src/score_matching/SSM.png)
-文章 [Sliced Score Matching: A Scalable Approach to Density and Score Estimation](https://arxiv.org/pdf/1905.07088.pdf) 详细证明了 $J_{SSM}$ 和 $J_{ISM}$ 是等价的。
+这时候，基于现有的自动求导，可快速计算损失函数，具体过程如图：
 
-### Denoising Score Matching （去噪）
-DSM 的优化从另一个角度出发，它受到 score matching 和 denoising auto-encoder 的启发：给定 $x\sim p(x)$（分布未知），在给予特定模式的噪声之后得到 $\tilde{x}$，这是我们记 $\tilde{x}$ 的条件概率分布为 $p(\tilde{x}|x)$，$\tilde{x}$ 的真实分布 $p(\tilde{x})=\int_x p(x)p(\tilde{x}|x) dx$ 未知，DSM 的损失函数被定义为：
+![SSM](./src/score_matching/SSM.png)
+
+Song et al. 详细证明了 $J_{SSM}$ 和 $J_{ISM}$ 是等价的。
+
+### Denoising Score Matching [3]
+DSM 的优化从另一个角度出发，它受到 SM 和 denoising auto-encoder 的启发：给定 $x\sim p(x)$（分布未知），在添加特定模式的噪声之后得到 $\tilde{x}$，记 $\tilde{x}$ 的条件概率分布为 $p(\tilde{x}|x)$，$\tilde{x}$ 的真实分布 $p(\tilde{x})=\int_x p(x)p(\tilde{x}|x) dx$ 未知，DSM 的损失函数被定义为：
 $$
 J_{DSM_{p(\tilde{x})}}(\theta) = \mathbb{E}_{p(x, \tilde{x})}\left[\frac{1}{2}\|s(\tilde{x};\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x) \|^2\right]
 $$
@@ -150,23 +203,23 @@ J_{DSM_{p(\tilde{x})}}(\theta) &= \mathbb{E}_{p(x, \tilde{x})}\left[\frac{1}{2}\
 $$
 可知，两者等价。也就是说最优解 $\theta^* = \argmin_\theta J_{DSM_{p(\tilde{x})}}(\theta)$，对于 $\tilde{x} \in \mathbb{R}^d$，几乎处处满足 $s(\tilde{x};\theta^*)=\triangledown_{\tilde{x}} \log p(\tilde{x})$。
 
-显然，给与固定模式的噪声，$p(\tilde{x}|x)$ 是可以计算的。通过优化 $J_{DSM_{p(\tilde{x})}}$，在 $p(x)$ 和 $p(\tilde{x})$ 都未知的情况下，我们居然可以估计出 $\triangledown_{\tilde{x}} \log p(\tilde{x})$。
+显然，给与固定模式的噪声，$p(\tilde{x}|x)$ 是可以计算的。通过优化 $J_{DSM_{p(\tilde{x})}}$，在 $p(x)$ 和 $p(\tilde{x})$ 都未知的情况下，我们居然可以估计出 $\triangledown_{\tilde{x}} \log p(\tilde{x})$。(amazing!)
 
 举个栗子：$\tilde{x} = x + \sigma\epsilon, \epsilon \sim \mathcal{N}(0,\mathbf{I})$，显然此时 $p(\tilde{x}|x)=\mathcal{N}(\tilde{x};x,\sigma^2\mathbf{I})$，此时:
 $$
-J_{DSM}(\theta) = \mathbb{E}_{x,\epsilon} \left[s(x+\sigma\epsilon;\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x)\right] \\
-= \mathbb{E}_{x,\epsilon} \left[s(x+\sigma\epsilon;\theta) - \frac{x - \tilde{x}}{\sigma^2}\right] \\
-= \mathbb{E}_{x,\epsilon} \left[s(x+\sigma\epsilon;\theta) - \frac{-\epsilon}{\sigma}\right]
+J_{DSM}(\theta) = \mathbb{E}_{x,\epsilon} \left[\frac12\|s(x+\sigma\epsilon;\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x)\|^2\right] \\
+= \mathbb{E}_{x,\epsilon} \left[\frac12\|s(x+\sigma\epsilon;\theta) - \frac{x - \tilde{x}}{\sigma^2}\|^2\right] \\
+= \mathbb{E}_{x,\epsilon} \left[\frac12\|s(x+\sigma\epsilon;\theta) - \frac{-\epsilon}{\sigma}\|^2\right]
 $$
 可以看到，$\frac{-\epsilon}{\sigma}$ 恰好是去除噪声的方向，这也是为什么称之为 Denoising Score Matching。
 优化上述损失，最终得到 $s(\tilde{x};\theta)\approx\triangledown_{\tilde{x}} \log p(\tilde{x})$。（ps：有没有感觉很像 DDPM）
 
 
-## Noise Conditional Score Network (NCSN)
-先介绍基于 Score Function 的生成模型。再提 Stochastic Gradient Langevin Dynamic (SGLD)，在 Score Function 已知的情况下，我们可以通过以下的迭代式从一个随机噪声生成样本：
+## Noise Conditional Score Network (NCSN) [4]
+<!-- 先介绍基于 Score Function 的生成模型。再提 Stochastic Gradient Langevin Dynamic (SGLD)，在 Score Function 已知的情况下，我们可以通过以下的迭代式从一个随机噪声生成样本：
 $$
 x_{t+1} = x_t + \frac{\epsilon}{2}\triangledown_x \log p(x) + \sqrt{\epsilon} z_t, z_t \sim \mathcal{N}(0, \mathbf{I})
-$$
+$$ -->
 
 通过前面介绍的估计 Score Matching 方法，我们可以估计 $\triangledown_x \log p(x)$。
 
@@ -243,3 +296,12 @@ s(x,t) = -\frac{\epsilon(x,t)}{\sqrt{1-\bar{\alpha}_t}}
 $$
 
 也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching。
+
+## 参考文献
+[1]: [Estimation of Non-Normalized Statistical Models by Score Matching.](https://www.cs.helsinki.fi/u/ahyvarin/papers/JMLR05.pdf)
+
+[2]: [Sliced Score Matching: A Scalable Approach to Density and Score Estimation](https://arxiv.org/pdf/1905.07088.pdf)
+
+[3]: [A Connection Between Score Matching and Denoising Autoencoders](https://ieeexplore.ieee.org/abstract/document/6795935)
+
+[4]: [Generative Modeling by Estimating Gradients of the Data Distribution](https://arxiv.org/pdf/1907.05600.pdf)
