@@ -295,7 +295,7 @@ $$
 s(x,t) = -\frac{\epsilon(x,t)}{\sqrt{1-\bar{\alpha}_t}}
 $$
 
-也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching。
+也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching，和前面提到的 NCSN 可以相互转换，通过 ALD 也可以完成采样。
 
 ## 参考文献
 [1]: [Estimation of Non-Normalized Statistical Models by Score Matching.](https://www.cs.helsinki.fi/u/ahyvarin/papers/JMLR05.pdf)
