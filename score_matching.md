@@ -3,16 +3,20 @@
 - [Home](./README.md)
 
 ## Generative Models
+
 现存的生成模型组要可以分为两种：
+
 - likelihood-based models：通过极大似然估计直接学习分布的概率密度函数 $p(x)$，包括 自回归模型（autoregressive models），标准化流模型（normalizing flow models），能量模型（energy-based models），变分自编码器（ variational auto-encoders）
 - implicit generative models：概率分布被模型采样过程隐式表达，典型例子是 对抗生成网络（GAN）。
 
 上述方法各有优劣，不赘述，今天主要聚焦于从 likelihood-based models 遇到的问题引出 score function，给出几种等价的学习 score function 的方法，并且介绍 DSM 和 DDPM 的联系。
 
 ## Likelihood-based Models
+
 从一个问题出发：给定训练集 $\{x_i\}_{i=1}^N$，拟合其数据分布 $p(x)$。
 采用极大似然估计的方式，我们大概可以分为以下几个步骤：
-- 定义一个模型 $q(\cdot;\theta): \mathbb{R}^d\to\mathbb{R}^{+}$，并且 $q(x;\theta)$ 越大那么 $p(x)$ 越大。为了使得概率密度积分等于 $1$，我们可以定义 
+
+- 定义一个模型 $q(\cdot;\theta): \mathbb{R}^d\to\mathbb{R}^{+}$，并且 $q(x;\theta)$ 越大那么 $p(x)$ 越大。为了使得概率密度积分等于 $1$，我们可以定义
 $$p(x;\theta)=\frac{1}{Z(\theta)}q(x;\theta), Z(\theta)=\int_x q(x;\theta)dx$$
 - 采用极大似然估计的方式优化模型参数。
 
@@ -69,18 +73,23 @@ $$
 
 **$Z(\theta)$ 难以计算**
 
-在给定 $p(x;\theta)$ 之后，当建模 score function 的时候，即 $s(x;\theta)$，我们可以发现：
+在给定 $p(x;\theta)$ 之后，当计算 score function 的时候，即 $s(x;\theta)$，我们可以发现：
 $$
 s(x;\theta) = \triangledown_x \log p(x;\theta) = \triangledown_x \log q(x;\theta) - \triangledown_x Z(\theta) = \triangledown_x \log q(x;\theta)
 $$
 这直接避开了难以计算的 $Z(\theta)$ 这一项。
 
+值得指出的是：
+- 可以使用一个 $q(x;\theta)$ 网络作为唯一的网络，然后用其对 $x$ 求梯度得到 $s(x;\theta)$，然后采用后面介绍的一些 score matching 的方法去学习 $q(x;\theta)$。
+- 也可以直接使用一个 vector-valued 网络直接作为 $s(x;\theta)$。
+
 **采样**
 
-一旦我们训练了好的一个 score function $s(x;\theta)\approx\triangledown_x \log p(x)$ 我们可以使用 朗之万动力学（Langevin Dynamics）生成样本。
+一旦我们训练了好的一个 score function，即 $s(x;\theta)\approx\triangledown_x \log p(x)$，我们可以使用 朗之万动力学（Langevin Dynamics）生成样本。
 
 <!-- 那么为什么要 score function，一方面大名鼎鼎的 stochastic gradient langevin dynamic (SGLD) 可以通过 score function 从噪声生成真实样本： -->
-Langevin Dynamics (Stochastic Gradient Langevin Dynamic (SGLD)) 提供了一个 MCMC （Markov chain Monte Carlo） 过程，其仅仅使用 score function $\triangledown_x \log p(x)$ 来完成从分布 $p(x)$ 的采样。
+<!-- Langevin Dynamics (Stochastic Gradient Langevin Dynamic (SGLD)) 提供了一个 MCMC （Markov chain Monte Carlo） 过程，其仅仅使用 score function，也就是$\triangledown_x \log p(x)$ 来完成从分布 $p(x)$ 的采样。 -->
+Langevin Dynamics 仅仅使用 score function，也就是$\triangledown_x \log p(x)$ 来完成从分布 $p(x)$ 的采样。
 具体来说，它首先从任意先验分布初始化 $x_0\sim\pi(x)$，接着通过以下迭代方式生成样本
 $$
 x_{t+1} = x_t + \frac{\epsilon}{2}\triangledown_x \log p(x) + \sqrt{\epsilon} z,z\sim \mathcal{N}(0, \mathbf{I})
@@ -151,6 +160,7 @@ $$
 通过 $J_{ISM}$，我们不需要知道 $p(x)$ 的具体是什么分布，我们就可以优化 $s(x;\theta)$。
 
 值得注意的是，前面的推导过程涉及到了以下几个假设：
+
 - $p(x)$，$s(x;\theta)$ 可微
 - $\mathbb{E}_p \left[\|\triangledown_x \log p(x)\|^2\right]$ 有界
 - $\forall \theta, \mathbb{E}_p \left[\|s(x;\theta)\|^2\right]$ 有界
@@ -162,6 +172,7 @@ $$
 $$
 
 ### Slice Score Matching [2]
+
 虽然 $J_{ISM}$ 提供了一种可行的优化方式，但是注意到其中有一项是计算 Hessian 矩阵（只计算对角线即可），这涉及到需要多次求梯度。当数据维度很高，例如图像，语音等可能成千上万个维度，则需要成千上万次求梯度，这些显然是不合理的。
 
 于是 Song et al. 提出了 SSM，其损失函数被定义为：
@@ -172,9 +183,10 @@ $$
 
 ![SSM](./src/score_matching/SSM.png)
 
-Song et al. 详细证明了 $J_{SSM}$ 和 $J_{ISM}$ 是等价的。
+Song et al. 详细证明了在满足一定条件下，$J_{SSM}$ 和 $J_{ISM}$ 是等价的。
 
 ### Denoising Score Matching [3]
+
 DSM 的优化从另一个角度出发，它受到 SM 和 denoising auto-encoder 的启发：给定 $x\sim p(x)$（分布未知），在添加特定模式的噪声之后得到 $\tilde{x}$，记 $\tilde{x}$ 的条件概率分布为 $p(\tilde{x}|x)$，$\tilde{x}$ 的真实分布 $p(\tilde{x})=\int_x p(x)p(\tilde{x}|x) dx$ 未知，DSM 的损失函数被定义为：
 $$
 J_{DSM_{p(\tilde{x})}}(\theta) = \mathbb{E}_{p(x, \tilde{x})}\left[\frac{1}{2}\|s(\tilde{x};\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x) \|^2\right]
@@ -214,8 +226,8 @@ $$
 可以看到，$\frac{-\epsilon}{\sigma}$ 恰好是去除噪声的方向，这也是为什么称之为 Denoising Score Matching。
 优化上述损失，最终得到 $s(\tilde{x};\theta)\approx\triangledown_{\tilde{x}} \log p(\tilde{x})$。（ps：有没有感觉很像 DDPM）
 
-
 ## Noise Conditional Score Network (NCSN) [4]
+
 <!-- 先介绍基于 Score Function 的生成模型。再提 Stochastic Gradient Langevin Dynamic (SGLD)，在 Score Function 已知的情况下，我们可以通过以下的迭代式从一个随机噪声生成样本：
 $$
 x_{t+1} = x_t + \frac{\epsilon}{2}\triangledown_x \log p(x) + \sqrt{\epsilon} z_t, z_t \sim \mathcal{N}(0, \mathbf{I})
@@ -223,17 +235,44 @@ $$ -->
 
 通过前面介绍的估计 Score Matching 方法，我们可以估计 $\triangledown_x \log p(x)$。
 
-但是无论是 ESM，ISM，SSM，DSM 都会面领着以下几个问题：
+但是无论是 ESM，ISM，SSM 都会面领着以下几个问题：
+
 - 流形假设：现实世界中的数据往往集中在嵌入在高维空间（即环境空间）中的低维流形上。
 - - $\triangledown_x \log p(x)$ 在低维流形之外是未定义的。
 - - Score Matching 目标方程仅当数据分布的支撑是整个空间时才提供一致的Score Function Estimator，当数据驻留在低维流形上时，将不一致。
+
+    **流行假设 分析实验**
+
+    ![toy experiment 1](./src/score_matching/toy_exp_1.png)
+
+    使用 SSM 训练一个 ResNet 作为 $s(x;\theta)$，分别在原始 CIFAR-10 数据集 和 在 CIFAR-10 上加入随机噪声 $\mathcal{N}(0, 0.0001)$ 形成的数据集 进行训练。我们认为加噪之后的分布的概率密度的支撑集充满了整个 $\mathbb{R}^d$。结果如上图所示，直接训练，当数据限制在低维流形上的时候，难以收敛。而当支撑集充满整个空间的时候，SSM 的损失函数最终能够收敛。
 - 低密度区域的数据稀缺可能会导致 分数估计、分数匹配 和 使用朗之万动力学采样 困难。
 - - Score Matching 在低密度区域不准确。
-- - Langevin Dynamics 无法区分分布的混合，详细见 [section 3.2.2](https://arxiv.org/pdf/1907.05600.pdf)。
+- - Langevin Dynamics 无法区分分布的混合。
+
+    **低密度区域拟合不准分析实验**
+
+    上面介绍的几种 score matching 的方法的损失函数都是以期望形式出现的，也就是说对于低概率密度区域，其训练权重将会非常低，在真实应用时（网络能力不够）这些区域往往不能很好的拟合真正的 score。
+
+    ![toy experiment 2](./src/score_matching/toy_exp_2.png)
+
+    实验一：给定 $p_{data} = \frac15\mathcal{N}([-5,-5]^\top, \mathbf{I}) + \frac45\mathcal{N}([5,5]^\top, \mathbf{I})$，直接采用 ESM 拟合 score，结果如上图所示。可以看到，除去红框标注的高密度区域，剩余的区域 score 预测的都不准确。
+
+    另一方面：我们假设有一个分布被表示为 $p_{data} = \pi p_1(x) + (1-\pi)p_2(x), \pi \in [0,1]$，并且我们假设 $p_1(x)$ 和 $p_2(x)$ 的支撑集交集为空。这个时候在 $p_1(x)$ 支撑集上，$\triangledown_x \log p_{data}(x) = \triangledown_x \log \pi p_1(x) = \triangledown_x \log p_1(x)$，而在 $p_2(x)$ 的支撑集上时，$\triangledown_x \log p_{data}(x) = \triangledown_x \log (1-\pi)p_2(x) = \triangledown_x \log p_2(x)$。也就是说这时候 $\triangledown_x \log p_{data}(x)$ 根本不取决于 $\pi$ 的取值。这时候采用 Langevin dynamics 采样在理论上就会出现错误。
+
+    上述分析中支撑集交集为空的假设可能过于严格，现实场景中往往是共享同一个支撑集，但是不同分布的高概率密度区域被低概率密度区域分隔。
+    例如我们采用前面的例子 $p_{data} = \frac15\mathcal{N}([-5,-5]^\top, \mathbf{I}) + \frac45\mathcal{N}([5,5]^\top, \mathbf{I})$，分别真实 i.i.d. 采样 和 使用真实的 score function 进行 Langevin Dynamic 采样。结果如图下图所示，如何前面的分析。
+    ![toy experiment 3](./src/score_matching/toy_exp_3.png)
 
 总的来说，直接使用 Score Matching 然后采用 Langevin Dynamic 进行采样，作为生成模型还是会遇到一些问题。
 
-NCSN 采用的思想是：通过给原始数据分布加入从小到大的高斯噪声，形成从低维流形到充满整个空间的不同的加噪数据分布。接着采用 Langevin Dynamic 从噪声大的分布慢慢生成噪声小的数据分布。
+**观察与分析**
+
+- 由于流行假设，直接在原始数据上做 score matching 不能准确估计真正的 score function。
+- 通过加入噪声，可以将真实分布的支撑集从低维流形扩散至整个空间。
+- LD 往往对于分布的混合是不敏感的，如果概率分布是类似分析实验中的分布，LD 进行采样将会出错。
+
+那么基于上述几点，NCSN 采用的思想是：通过给原始数据分布加入从小到大的高斯噪声，形成从低维流形到充满整个空间的不同的加噪数据分布。接着采用 Langevin Dynamic 从噪声大的分布慢慢生成噪声小的数据分布。
 
 具体来说，给定一个序列 $\{\sigma_i\}_{i=1}^L$，满足 $\frac{\sigma_1}{\sigma_2}=\frac{\sigma_2}{\sigma_3}=\cdots=\frac{\sigma_{L-1}}{\sigma_L}>1$。
 
@@ -241,6 +280,7 @@ NCSN 采用的思想是：通过给原始数据分布加入从小到大的高斯
 通过前面介绍的 DSM，我们可以估计到所有的 $\triangledown_{\tilde{x}} \log p_{\sigma_i}(\tilde{x})$。通过 Langevin Dynamic，我们可以生成来自 $p_{\sigma_i}(\tilde{x})$ 的样本。
 
 于是我们可以采取以下策略：
+
 - $\sigma_1$ 足够大，以至于数据分布可以充满整个高维空间，解决前面提到的问题
 - $\sigma_L$ 足够小，这样 $p_{\sigma_L}(\tilde{x})$ 可以近似为 $p(x)$。
 - 逐步从 $p_{\sigma_1}(\tilde{x})$ 到 $p_{\sigma_L}(\tilde{x})$ 生成样本，相当于采用 $L$ 次 SGLD，最终得到 $p_{\sigma_L}(\tilde{x})$ 的样本，近似真实 $p(x)$ 的样本。
@@ -256,7 +296,8 @@ $$
 L(\theta) = \frac1L \sum_{i=1}^L \lambda(\sigma_i)\ell(\theta;\sigma_i)
 $$
 
-假定 $s(\tilde{x},\sigma;\theta)$ 能力足够。最优解对 $\tilde{x}\in\mathbb{R}^d$ 几乎处处满足 $s(\tilde{x},\sigma;\theta^*) = \triangledown_{\tilde{x}} \log p_{\sigma}(\tilde{x})$。
+<!-- 假定 $s(\tilde{x},\sigma;\theta)$ 能力足够。最优解对 $\tilde{x}\in\mathbb{R}^d$ 几乎处处满足 $s(\tilde{x},\sigma;\theta^*) = \triangledown_{\tilde{x}} \log p_{\sigma}(\tilde{x})$。 -->
+那么优化上述目标函数，我们可以得到 $s(\tilde{x},\sigma;\theta) \approx \triangledown_{\tilde{x}} \log p_{\sigma}(\tilde{x})$。
 
 优化目标中的 $\lambda(\sigma_i)$ 是希望对于所有的 $\sigma_i$，$\lambda(\sigma_i)\ell(\theta;\sigma_i)$ 都能够在同一数量级，而观察到对于最优解一般 $\|s(\tilde{x},\sigma;\theta)\|_2 \propto \frac1\sigma$，于是我们选择 $\lambda(\sigma_i) = \sigma_i^2$，这时候有 $\lambda(\sigma_i)\ell(\theta;\sigma_i)=\mathbb{E} \left[\frac12\left\|\sigma_i s(\tilde{x},\sigma_i;\theta)+\frac{\tilde{x}-x}{\sigma_i}\right\|^2\right]$，这时候 $\|\sigma_i s(\tilde{x},\sigma_i;\theta)\| \propto 1, \|\frac{\tilde{x}-x}{\sigma_i}\|\propto 1$，对于所有的 $\sigma_i$，$\lambda(\sigma_i)\ell(\theta;\sigma_i)$ 都能够处于同一数量级。
 
@@ -264,7 +305,12 @@ $$
 
 ![Annealed Langevin Dynamic](./src/score_matching/ALD.png)
 
+ALD 的一个二维可视化如下图，（图中 $\sigma$ 关系和上面描述的反过来）：
+
+![ald](./src/score_matching/ald.gif)
+
 ### Connection with DDPM
+
 在 DDPM 的前向过程中，我们知道：
 $$
 x_{t} = \sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon, \epsilon \sim \mathcal{N}(0,\mathbf{I})
@@ -295,9 +341,10 @@ $$
 s(x,t) = -\frac{\epsilon(x,t)}{\sqrt{1-\bar{\alpha}_t}}
 $$
 
-也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching，和前面提到的 NCSN 可以相互转换，通过 ALD 也可以完成采样。
+也就是说：DDPM 中学习的噪声网络实际上就是在做 Denoising Score Matching，和前面提到的 NCSN 可以相互转换，通过 ALD 也可以完成采样，不过会更慢。
 
 ## 参考文献
+
 [1]: [Estimation of Non-Normalized Statistical Models by Score Matching.](https://www.cs.helsinki.fi/u/ahyvarin/papers/JMLR05.pdf)
 
 [2]: [Sliced Score Matching: A Scalable Approach to Density and Score Estimation](https://arxiv.org/pdf/1905.07088.pdf)
