@@ -8,6 +8,7 @@ img{
 # Mamba: 从 入门 到 入土
 
 ## 内容概要
+
 1. 背景介绍
 2. 什么是 SSM
 3. Mamba
@@ -27,12 +28,15 @@ img{
 给定两个序列 $X \in \mathbb{R}^{L_x \times d_x}，Y \in \mathbb{R}^{L_y \times d_y}$，矩阵 $W_q \in \mathbb{R}^{d_x \times d}, W_k \in \mathbb{R}^{d_y \times d}, W_v \in \mathbb{R}^{d_y \times d_v}$。
 首先将两个序列进行线性映射 $Q = XW_q \in \mathbb{R}^{L_x \times d}, K = YW_k \in \mathbb{R}^{L_y \times d}, V = YW_v \in \mathbb{R}^{L_y \times d_v}$。
 计算attention map $\mathcal{S}$:
+
 $$
 \begin{equation}
 \mathcal{S} = Softmax(\frac{QK^\top}{\sqrt{d}}, dim=1)\in \mathbb{R}^{L_x\times L_y}.
 \end{equation}
 $$
+
 计算输出 $O$:
+
 $$
 \begin{equation}
 O=\mathcal{S}V \in \mathbb{R}^{L_x\times d_v}.
@@ -51,10 +55,12 @@ $$
 ![](./src/mamba/GPT_AMap.png)
 
 有啥优势呢？
+
 1. token 之间可以自适应的与上文进行交互。
 2. 由于 Masked Self-Attention 的存在，可以将一个长度为 N 的序列喂入之后，直接给出 对应的 N 个预测 $p(u_{i+1}|u_{i},...,u_1;\theta)$，这使得训练可以并行化。
 
 有啥劣势呢？先看看做预测的时候，GPT怎么运作的：
+
 ![](./src/mamba/GPT_infer.gif)
 
 其采用的是一种 auto-regressive 的方式进行预测，每预测出一个词，都会将其添加至下一次的输入中，这将带来两个问题：
@@ -66,6 +72,7 @@ $$
 有没有什么解决方案？
 
 ### RNN
+
 循环神经网络（RNN）是一种基于序列的网络。
 它在序列的每个时间步取两个输入，即时间步 t 的输入和前一个时间步 t-1 的隐藏状态，以生成下一个隐藏状态并预测输出。
 
@@ -92,7 +99,9 @@ RNN 有一个循环机制，允许它们将信息从上一步传递到下一步�
 不过窗口大小固定，能够结合的上下文信息有限，在序列长度较大的场景下，甚至根本无法获取到更早期的上下文。
 
 ## SSM
+
 ### 什么是 State Space ？
+
 状态空间（State Space），是控制工程中的一个名词。状态是指在系统中可决定系统状态、最小数目变量的有序集合。
 而所谓状态空间则是指该系统全部可能状态的集合。
 简单来说，状态空间可以视为一个以状态变量为坐标轴的空间，因此系统的状态可以表示为此空间中的一个向量。
@@ -104,7 +113,8 @@ RNN 有一个循环机制，允许它们将信息从上一步传递到下一步�
 
 一个简单的弹簧小球模型，假设小球质量为 $m$，弹簧弹性系数为 $k$，弹簧未形变时假设小球坐标位置为 $0$，给定 小球初始位置 $x_0$，初始速度 $v_0$。给定任意时刻 $t$ 小球所受到的外力 $f(t)$，小球任意时刻的位移 $x(t)$ 是确定的。
 
-我们可以以小球当前位置 $x(t)$，当前速度 $v(t)$ 作为系统状态，可以表示为 
+我们可以以小球当前位置 $x(t)$，当前速度 $v(t)$ 作为系统状态，可以表示为
+
 $$
 \begin{equation}
 {s} = \left[
@@ -115,27 +125,34 @@ $$
 \right]
 \end{equation}
 $$
+
 系统的状态空间则是 $s$ 所有可能的集合，如果不考虑物理限制（弹簧形变长度限制，相对论效应），$s\in \mathbb{R}^2$。
 
 ### 什么是 State Space Model ？
+
 状态空间模型（State Space Model）是建立在状态空间概念基础之上的具体数学模型。
 它由状态方程和观测方程组成，用于描述动态系统的行为。
 状态空间模型提供了一种形式化的方法来表示系统的动态行为，包括系统状态随时间的演变（状态方程）以及系统状态与观测之间的关系（观测方程）。
 具体形式如下：
+
 $$
 \begin{align}
 \text{State equation:}\quad \dot{x} &= A x + B u \\
 \text{Output equation:}\quad o &= C x + D u
 \end{align}
 $$
+
 其中 $A,B,C,D$ 的值由系统的性质决定，$u$ 是系统输入，$o$ 是输出，$x$ 是状态，$\dot{x}$ 是状态关于时间 $t$ 的导数。
 给定一个初始状态 $x(t_0)$，以及之后的系统输入 $u(t)$，通过上面的方程，我们可以计算接下来任意时间 $t$ 的系统输出。（怎么算，后面再说）
 
 回顾上面的弹簧小球系统，可以列出以下方程（只考虑弹簧弹力和外力 $f$）：
+
 $$
 ma(t) = f - kx(t), a(t) = \ddot{x} (t).
 $$
+
 整理可以得到：
+
 $$
 \begin{equation}
 \dot{s} 
@@ -168,6 +185,7 @@ $$
 \right][f(t)]
 \end{equation}
 $$
+
 $$
 \begin{equation}
 % \dot{X} 
@@ -187,6 +205,7 @@ $$
 $$
 
 即 
+
 $$
 A = \left[
     \begin{align}
@@ -206,28 +225,39 @@ $$
 ### 如何求解 SSM ？
 来自某本 系统控制理论 的书：
 线性定常系统在控制 $u(t)$ 下运动，其状态方程为：
+
 $$
 \begin{align}
 \dot{x} &= A x + B u 
 \end{align}
 $$
+
 当初始时刻为 $t_0$，其初始状态为 $x_0$ 时，其解为：
+
 $$
 x(t) = \Phi(t - t_0)x(t_0)+\int_{t_0}^t \Phi(t - \tau)Bu(\tau)\text{d}\tau,
 $$
+
 其中 $\Phi(t)=e^{At}=\sum_{k=0}^{\infty}\frac{(At)^k}{k!}=1 + At + \frac{(At)^2}{2!}+\cdots$.
 
 证明：
 
-移项， 
+移项，
+
 $$\dot{x}-Ax = Bu,$$
+
 两边同乘 $e^{-At}$，
+
 $$e^{-At}[\dot{x}-Ax]=e^{-At}Bu,$$
+
 即，
+
 $$\frac{\text{d}}{\text{d}t}[e^{-At}x]=e^{-At}Bu,$$
 从 $t_0$ 到 $t$ 积分，
 $$e^{-At}x(t)|_{t_0}^t=\int_{t_0}^te^{-A\tau}Bu(\tau)\text{d}\tau,$$
+
 整理，
+
 $$
 \begin{equation}
 x(t) = e^{A(t-t_0)}x(t_0) + \int_{t_0}^te^{A(t - \tau)}Bu(\tau)\text{d}\tau
@@ -238,11 +268,13 @@ $$
 
 ### SSM for sequence modeling
 将 SSM 用于序列建模是非常直觉的，其天然的接受一个 输入序列，得到一个 输出序列，如图（由于ML一般输入用 $x$ 表示， 输出用 $y$ 表示，所以这里符号稍有变化，用 $h$ 表示状态）：
+
 ![](./src/mamba/SSM_sequence.png)
 
 然而还存在一个问题是：上面的 SSM 是连续的，对于连续信号来说，处理上面的 SSM 非常 analytically challenging。 另外对于例如语言这种离散序列，显然不能直接使用上述 SSM。
 
 我们当然希望有一个离散化的 SSM ，并且其与 连续形式 有相同或者类似的表达式：
+
 $$
 \begin{align}
 h_{k+1} =& \bar{A} h_k + \bar{B} x_k \\
@@ -258,6 +290,7 @@ $$
 
 接下来就是计算对应的离散化的 SSM 公式。
 考虑两个相邻的采样时间步 $t$ 和 $t + \Delta$，根据上面的 SSM 的求解公式有
+
 $$
 \begin{align}
 h(t+\Delta) = e^{A\Delta}h(t) + \int_{t}^{t+\Delta}e^{A(t + \Delta - \tau)}Bx(\tau)\text{d}\tau
@@ -270,6 +303,7 @@ $$
 ![](./src/mamba/SSM_ZH.png)
 
 公式（7）可计算为：
+
 $$
 \begin{align}
 h(t+\Delta) &= e^{\Delta A}h(t) + (-A)^{-1}e^{A(t + \Delta - \tau)}Bx(t)|_{t}^{t+\Delta} \\
@@ -278,14 +312,19 @@ h(t+\Delta) &= e^{\Delta A}h(t) + (-A)^{-1}e^{A(t + \Delta - \tau)}Bx(t)|_{t}^{t
 $$
 
 采用离散的方式进行表示：
+
 $$
 h_{k+1} = e^{\Delta A} h_k + (\Delta A)^{-1}[e^{\Delta A} - I](\Delta B) x_k, \quad y_{k+1} = C h_{k+1},
 $$
+
 于是离散化的参数可以这样计算：
+
 $$
 \bar{A} = e^{\Delta A}, \bar{B} = (\Delta A)^{-1}[e^{\Delta A} - I](\Delta B), \bar{C} = C.
 $$
+
 当然有些工作进一步将这个式子用一阶泰勒展开近似，他们将离散化计算为：
+
 $$
 \bar{A} = [I-\frac{\Delta}{2}A]^{-1}[I+\frac{\Delta}{2}A], \bar{B} = \Delta [I-\frac{\Delta}{2}A]^{-1} B, \bar{C} = C.
 $$
@@ -298,10 +337,13 @@ $$
 
 ### SSM 的 Recurrent 表示
 给定一个离散的输入序列 $x_k$，离散化 SSM 和最开始的 RNN 几乎一模一样：每个时刻将隐变量和输入喂入，得到当前时刻的输出，即
+
 $$
 h_{k} = \bar{A} h_{k-1} + \bar{B} x_{k}, y_k = \bar{C} h_{k}
 $$
+
 我们先看看具体的计算过程，
+
 ![](./src/mamba/SSM_RNN_C.png)
 ![](./src/mamba/SSM_RNN_C1.png)
 ![](./src/mamba/SSM_RNN_C2.png)
@@ -310,6 +352,7 @@ $$
 
 ### SSM 的 Convolution 表示
 将 $y_k$ 展开（$\bar{C} = C$ 就不赘述了）：
+
 $$
 \begin{align}
 y_k &= C h_k \nonumber \\
@@ -321,11 +364,14 @@ y_k &= C h_k \nonumber \\
 $$
 
 记 
+
 $$
 K = (C\bar{B}, C\bar{A}\bar{B},\cdots,C\bar{A}^{k}\bar{B},\cdots) \\
 x = (x_0, x_1, \cdots, x_k, \cdots)
 $$
+
 输出 $y$ 可以用卷积形式表示：
+
 $$y = x \star K$$
 
 ![](./src/mamba/SSM_CNN_1.png)
@@ -430,5 +476,3 @@ LTI 要求 SSM 参数 A、B 和 C 对于所有时间步都是固定的。
 插一句题外话，如果想知道如何选择 A 的形式，使得其能够得到超长序列的记忆，以及快速计算卷积核 $K$，请参考论文 Structured State Space for Sequences (s4)。
 
 ### Mamba - A Selective SSM
-<!-- 大概可以表示为下图：
-![](./src/mamba/SSM_ARCH.png) -->
