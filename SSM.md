@@ -458,6 +458,20 @@ if __name__ == "__main__":
 
 ![](./src/mamba/SSM_RUN.png)
 
+### 关于 SSM 参数的维度
+
+前面介绍了 SSM 的一些基础知识，以及给出了一个简单的实例。那在 ML 中，对于形状为 $\mathbb{R}^{L\times d}$ 的输入，SSM 又是怎么处理的呢？
+
+假设输入 $X = [x_0, x_1, \cdots x_{L-1}]^\top \in \mathbb{R}^{L\times d}$（batch size = 1），按照 *dim=1* 拆分为 $d$ 个一维的序列，即 $s^i = [x_0^i, x_1^i, \cdots, x_{L-1}^i],i=0,\cdots,d-1$。
+
+对于每一个序列 $s^i$，我们都将用一个独立的 SSM 对其进行处理。假设 状态变量 $h$ 的维度为 $n$，那么序列 $s^i$ 的 SSM 的参数的维度分别为 $A^i\in\mathbb{R}^{n\times n}, B^i\in\mathbb{R}^{n\times 1}, C^i\in\mathbb{R}^{1 \times n}, \Delta^i\in\mathbb{R}^1$。有些工作对 SSM 中的矩阵 $A^i$ 的结构作出了一些假设，极大的提升的 SSM 的可用性。例如假设 $A^i$ 是一个对角阵，此时可以用三个一维的向量表示矩阵，即 $A^i,B^i,C^i \in \mathbb{R}^n$，外加 $\Delta^i\in\mathbb{R}^1$ (运算的时候仍然需要重构成矩阵，进行矩阵运算）。
+
+对于整个输入 $X$ 来说，整个 SSM Block 的参数由所有的 $A^i,B^i,C^i,\Delta^i$ 构成，可以表示为 $A,B,C\in \mathbb{R}^{d\times n},\Delta\in\mathbb{R}^d$（对角形式的 $A^i$）。
+
+整个过程可以表示为以下算法：
+
+![](./src/mamba/SSM_dim.png)
+
 ### SSM 小结
 
 SSM 连续的、循环的和卷积的这三种表示都有不同的优缺点
@@ -479,5 +493,87 @@ SSM 连续的、循环的和卷积的这三种表示都有不同的优缺点
 LTI 要求 SSM 参数 A、B 和 C 对于所有时间步都是固定的。
 这意味着对于 SSM 处理的每个 token，矩阵 A、B 和 C 都是相同的。
 
+![](./src/mamba/SSM_static.png)
+
 换句话说，无论给 SSM 的序列是什么，A、B 和 C 的值都保持不变。
-这是一个内容不铭感的静态表示。
+这是一个内容不敏感的静态表示。这对于一些需要感知序列内容的任务来说是非常致命的。
+
+![](./src/mamba/SSM_selective.png)
+![](./src/mamba/SSM_prompt.png)
+
+相比之下，这些任务对于 transformer 来说相对容易，因为它们根据输入序列动态地改变它们的注意力。他们可以选择性地“看”或“注意”序列的不同部分。
+
+### Selectively Retain Information
+
+RNN / SSM 的循环表示 能够高效推理或者线性扩增的根本原因是：他们将历史数据压缩成一个非常小的状态。在序列的新输入来到时，它们可以直接使用这个历史状态计算新的输出。然而 SSM 静态的压缩方案无法对数据选择性的 丢弃 或 采纳，导致 SSM 难以胜任内容敏感的任务。
+
+而 transformer 则完全没有对历史数据进行压缩，完全是一个巨大的 状态变量（attention map），这对于需要选择性的 忽视 或 查看 历史数据来说是非常简单的。而当新的数据来到时，整个 attention map 需要重新计算，自然的推理消耗呈现二次增长。
+
+而 Mamba 则希望能够兼两者所长，通过选择性的压缩数据，让模型相较于 SSM 更加 powerful，相较于 transformer 更加 efficient。
+
+![](./src/mamba/Mamba_1.png)
+
+
+回顾 SSM 核心公式，（不要忘记一个 SMM block 由 d 个独立的 SMM 构成，下面公式是其中的某一个 SMM）：
+
+$$
+\left.\begin{align}
+\dot{h} &= Ah+Bx \nonumber \\
+y &= C h \nonumber \\
+\end{align}\right\} 
+\underset{\longrightarrow}{\Delta} 
+\left\{\begin{align}
+h_k &= \bar{A}h_{k-1}+\bar{B}x_k \nonumber \\
+y_k &= C h_k \nonumber \\
+\end{align}\right. 
+$$
+
+为了使得 $h_k$ 能够选择性的压缩数据，以及输出也能够选择性的变化，$\bar{A},\bar{B},C$ 都要成为关于输入变化的值。而 $\bar{A},\bar{B}$ 又是通过 $\Delta$ 离散化得到的，于是问题变成了让 $A, B, C, \Delta$ 变成与输入相关。
+
+
+假设输入 $X = [x_0, x_1, \cdots x_{L-1}]^\top \in \mathbb{R}^{L\times d}$（batch size = 1）。
+
+相较于一个 SSM Block，Mamba 保持参数 $A\in \mathbb{R}^{d\times n}$ 不随输入变化，$B = \text{Linear}_n(X), C = \text{Linear}_n(X) \in\mathbb{R}^{L\times n}，\Delta=\text{Softplus}(\text{Param}_d+\text{Broadcast}_d(\text{Linear}(X))) \in \mathbb{R}^{L\times d}$ 由线性层将输入进行映射生成。
+
+$A,B$ 在对应的 $\Delta$ 离散化之后得到 $\bar{A},\bar{B} \in \mathbb{R}^{L\times d \times n}$。简单的广播 $C\in\mathbb{R}^{L\times d\times n}$。
+
+对于前面定义的拆分过后的序列 $s^i = [x_0^i, x_1^i, \cdots, x_{L-1}^i]$，关于这个序列的 SSM 表达式是（下面的都为重构成矩阵之后的运算）：
+$$
+h_k^i = \bar{A}^{k i \cdot} h_{k-1} + \bar{B}^{k i \cdot} s_k^i \\
+y_k^i = C^{ki\cdot} h_k^i
+$$
+ 
+算法如下图：
+
+![](./src/mamba/Mamba_Alg.png)
+
+这意味着对于每个输入 token，我们现在有不同的B和C矩阵，这解决了内容感知问题!
+它们一起选择性地选择将什么保留在隐藏状态中，忽略什么，因为它们现在依赖于输入。
+
+较小的步长∆导致忽略特定的单词，而是更多地使用之前的上下文，而较大的步长∆则更多地关注输入单词而不是上下文:
+
+![](./src/mamba/Mamba_ignore.png)
+
+### 并行计算
+
+由于 Mamba 已经破坏了 SSM 的 LTI 性质，所以 Mamba 不再有 卷积表示形式，而仅存 循环表示。如果按照 串行 的方式计算，那么训练时相较于 RNN 无任何时间优势。
+
+![](./src/mamba/Mamba_serial.png)
+
+但好在存在一个并行加速算法，可以将降低时间复杂度：
+
+![](./src/mamba/Mamba_parallel.png)
+
+思想类似于分治，详细的解读可参考：[Mamba: A Hard Way](https://srush.github.io/annotated-mamba/hard.html)（用 triton 实现了 Selective SSM 的 forward 和 backward 过程）。
+
+Mamba 还介绍了一个硬件加速算法，不过多介绍，感兴趣可以参考 Mamba 原文。
+
+### 网络结构
+
+Mamba 的最为关键的 Selective SSM 按照上面介绍已经可以实现了（实际上不但要用 cuda 实现 forward，还要实现 backward，教会了 1 + 1，去算个积分？），那么剩下的就是搭积木把网络结构垒起来。
+
+![](./src/mamba/Mamba_block.png)
+
+### Mamba 小结
+
+
