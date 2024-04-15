@@ -576,4 +576,5 @@ Mamba 的最为关键的 Selective SSM 按照上面介绍已经可以实现了�
 
 ### Mamba 小结
 
+![](./src/mamba/Mamba_advantage.png)
 
