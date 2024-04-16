@@ -152,18 +152,14 @@ ma(t) = f - kx(t), a(t) = \ddot{x} (t).
 $$
 
 整理可以得到：
-
 $$
-\begin{equation}
-\dot{s} 
-= 
+\dot{s} = 
 \left[
     \begin{align}
     v(t) \nonumber \\
     a(t) \nonumber
     \end{align}
-\right]
-=
+\right]=
 \left[
     \begin{align}
     0 \quad & 1 \nonumber \\
@@ -183,15 +179,10 @@ $$
     \frac{1}{m} \nonumber
     \end{align}
 \right][f(t)]
-\end{equation}
 $$
 
 $$
-\begin{equation}
-% \dot{X} 
-% = 
-[x(t)]
-=
+[x(t)]=
 \left[
     1 \quad 0 \nonumber
 \right]
@@ -201,7 +192,6 @@ $$
     v(t) \nonumber
     \end{align}
 \right]
-\end{equation}
 $$
 
 即 
