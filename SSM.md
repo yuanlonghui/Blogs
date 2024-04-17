@@ -123,7 +123,7 @@ $$
 \end{bmatrix}
 $$
 
-系统的状态空间则是 $s$ 所有可能的集合，如果不考虑物理限制（弹簧形变长度限制，相对论效应），$s\in \mathbb{R}^2$。
+系统的状态空间则是 $s$ 所有可能的集合，如果不考虑物理限制（弹簧形变长度限制，相对论效应）， $s\in \mathbb{R}^2$。
 
 ### 什么是 State Space Model ？
 
@@ -232,7 +232,7 @@ $$\frac{\text{d}}{\text{d}t}[e^{-At}x]=e^{-At}Bu,$$
 
 从 $t_0$ 到 $t$ 积分，
 
-$$e^{-At}x(t)|_{t_0}^t=\int_{t_0}^te^{-A\tau}Bu(\tau)\text{d}\tau,$$
+$$e^{-At}x(t)|_{t_0}^t=\int_{t_0}^te^{-A\tau}Bu(\tau)\text{d}\tau$$
 
 整理，
 
