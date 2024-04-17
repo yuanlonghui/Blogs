@@ -116,14 +116,11 @@ RNN 有一个循环机制，允许它们将信息从上一步传递到下一步�
 我们可以以小球当前位置 $x(t)$，当前速度 $v(t)$ 作为系统状态，可以表示为
 
 $$
-\begin{equation}
-{s} = \left[
-    \begin{align}
-    x(t) \nonumber \\
-    v(t) \nonumber
-    \end{align}
-\right]
-\end{equation}
+{s} =
+\begin{bmatrix}
+    x(t) \\
+    v(t)
+\end{bmatrix}
 $$
 
 系统的状态空间则是 $s$ 所有可能的集合，如果不考虑物理限制（弹簧形变长度限制，相对论效应），$s\in \mathbb{R}^2$。
@@ -142,74 +139,63 @@ $$
 \end{align}
 $$
 
-其中 $A,B,C,D$ 的值由系统的性质决定，$u$ 是系统输入，$o$ 是输出，$x$ 是状态，$\dot{x}$ 是状态关于时间 $t$ 的导数。
-给定一个初始状态 $x(t_0)$，以及之后的系统输入 $u(t)$，通过上面的方程，我们可以计算接下来任意时间 $t$ 的系统输出。（怎么算，后面再说）
+其中 $A,B,C,D$ 的值由系统的性质决定， $u$ 是系统输入， $o$ 是输出， $x$ 是状态， $\dot{x}$ 是状态关于时间 $t$ 的导数。
+给定一个初始状态 $x(t_0)$ ，以及之后的系统输入 $u(t)$ ，通过上面的方程，我们可以计算接下来任意时间 $t$ 的系统输出。（怎么算，后面再说）
 
-回顾上面的弹簧小球系统，可以列出以下方程（只考虑弹簧弹力和外力 $f$）：
+回顾上面的弹簧小球系统，可以列出以下方程（只考虑弹簧弹力和外力 $f$ ）：
 
 $$
 ma(t) = f - kx(t), a(t) = \ddot{x} (t).
 $$
 
 整理可以得到：
+
 $$
 \dot{s} = 
-\left[
-    \begin{align}
-    v(t) \nonumber \\
-    a(t) \nonumber
-    \end{align}
-\right]=
-\left[
-    \begin{align}
-    0 \quad & 1 \nonumber \\
-    -\frac{k}{m} \quad & 0 \nonumber \\
-    \end{align}
-\right]
-\left[
-    \begin{align}
-    x(t) \nonumber \\
-    v(t) \nonumber
-    \end{align}
-\right]
+\begin{bmatrix}
+    v(t) \\
+    a(t)
+\end{bmatrix} =
+\begin{bmatrix}
+    0 & 1 \\
+    -\frac{k}{m} & 0
+\end{bmatrix}
+\begin{bmatrix}
+    x(t) \\
+    v(t)
+\end{bmatrix}
 +
-\left[
-    \begin{align}
-    0 \nonumber \\
-    \frac{1}{m} \nonumber
-    \end{align}
-\right][f(t)]
+\begin{bmatrix}
+    0 \\
+    \frac{1}{m}
+\end{bmatrix}f(t)
 $$
 
 $$
-[x(t)]=
-\left[
-    1 \quad 0 \nonumber
-\right]
-\left[
-    \begin{align}
-    x(t) \nonumber \\
-    v(t) \nonumber
-    \end{align}
-\right]
+[x(t)] =
+\begin{bmatrix}
+    1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+    x(t) \\
+    v(t)
+\end{bmatrix}
 $$
 
 即 
 
 $$
-A = \left[
-    \begin{align}
-    0 \quad & 1 \nonumber \\
-    -\frac{k}{m} \quad & 0 \nonumber \\
-    \end{align}
-\right],
-B = \left[
-    \begin{align}
-    0 \nonumber \\
-    \frac{1}{m} \nonumber
-    \end{align}
-\right],
-C = [1 \quad 0], D = 0.
+A = \begin{bmatrix}
+0 & 1 \\
+-\frac{k}{m} & 0 \\
+\end{bmatrix},
+B = \begin{bmatrix}
+0 \\
+\frac{1}{m} \\
+\end{bmatrix},
+C = \begin{bmatrix}
+1 & 0 \\
+\end{bmatrix}, D = 0.
 $$
 
 ### 如何求解 SSM ？
@@ -243,7 +229,9 @@ $$e^{-At}[\dot{x}-Ax]=e^{-At}Bu,$$
 即，
 
 $$\frac{\text{d}}{\text{d}t}[e^{-At}x]=e^{-At}Bu,$$
+
 从 $t_0$ 到 $t$ 积分，
+
 $$e^{-At}x(t)|_{t_0}^t=\int_{t_0}^te^{-A\tau}Bu(\tau)\text{d}\tau,$$
 
 整理，
