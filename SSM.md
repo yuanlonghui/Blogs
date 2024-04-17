@@ -232,7 +232,7 @@ $$\frac{\text{d}}{\text{d}t}[e^{-At}x]=e^{-At}Bu,$$
 
 从 $t_0$ 到 $t$ 积分，
 
-$$e^{-At}x(t)|_{t_0}^t=\int_{t_0}^te^{-A\tau}Bu(\tau)\text{d}\tau$$
+$$ e^{-At} x(t) \Big\vert_{t_0}^t  = \int_{t_0}^t e^{-A\tau} Bu(\tau) \text{d} \tau $$
 
 整理，
 
@@ -506,16 +506,17 @@ y_k &= C h_k \nonumber \\
 \end{align}\right. 
 $$
 
-为了使得 $h_k$ 能够选择性的压缩数据，以及输出也能够选择性的变化，$\bar{A},\bar{B},C$ 都要成为关于输入变化的值。而 $\bar{A},\bar{B}$ 又是通过 $\Delta$ 离散化得到的，于是问题变成了让 $A, B, C, \Delta$ 变成与输入相关。
+为了使得 $h_k$ 能够选择性的压缩数据，以及输出也能够选择性的变化， $\bar{A},\bar{B},C$ 都要成为关于输入变化的值。而 $\bar{A},\bar{B}$ 又是通过 $\Delta$ 离散化得到的，于是问题变成了让 $A, B, C, \Delta$ 变成与输入相关。
 
 
 假设输入 $X = [x_0, x_1, \cdots x_{L-1}]^\top \in \mathbb{R}^{L\times d}$（batch size = 1）。
 
-相较于一个 SSM Block，Mamba 保持参数 $A\in \mathbb{R}^{d\times n}$ 不随输入变化，$B = \text{Linear}_n(X), C = \text{Linear}_n(X) \in\mathbb{R}^{L\times n}，\Delta=\text{Softplus}(\text{Param}_d+\text{Broadcast}_d(\text{Linear}(X))) \in \mathbb{R}^{L\times d}$ 由线性层将输入进行映射生成。
+相较于一个 SSM Block，Mamba 保持参数 $A\in \mathbb{R}^{d\times n}$ 不随输入变化， $B = \text{Linear}_n(X), C = \text{Linear}_n(X) \in\mathbb{R}^{L\times n}, \Delta=\text{Softplus}(\text{Param}_d+\text{Broadcast}_d(\text{Linear}(X))) \in \mathbb{R}^{L\times d}$ 由线性层将输入进行映射生成。
 
 $A,B$ 在对应的 $\Delta$ 离散化之后得到 $\bar{A},\bar{B} \in \mathbb{R}^{L\times d \times n}$。简单的广播 $C\in\mathbb{R}^{L\times d\times n}$。
 
 对于前面定义的拆分过后的序列 $s^i = [x_0^i, x_1^i, \cdots, x_{L-1}^i]$，关于这个序列的 SSM 表达式是（下面的都为重构成矩阵之后的运算）：
+
 $$
 h_k^i = \bar{A}^{k i \cdot} h_{k-1} + \bar{B}^{k i \cdot} s_k^i \\
 y_k^i = C^{ki\cdot} h_k^i
