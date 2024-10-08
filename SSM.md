@@ -495,15 +495,15 @@ RNN / SSM 的循环表示 能够高效推理或者线性扩增的根本原因是
 回顾 SSM 核心公式，（不要忘记一个 SMM block 由 d 个独立的 SMM 构成，下面公式是其中的某一个 SMM）：
 
 $$
-\left.\begin{align}
-\dot{h} &= Ah+Bx \nonumber \\
-y &= C h \nonumber \\
-\end{align}\right\} 
+\left.\begin{aligned}
+\dot{h} &= Ah+Bx \\
+y &= C h \\
+\end{aligned}\right\} 
 \underset{\longrightarrow}{\Delta} 
-\left\{\begin{align}
-h_k &= \bar{A}h_{k-1}+\bar{B}x_k \nonumber \\
-y_k &= C h_k \nonumber \\
-\end{align}\right. 
+\left\{\begin{aligned}
+h_k &= \bar{A}h_{k-1}+\bar{B}x_k \\
+y_k &= C h_k \\
+\end{aligned}\right. 
 $$
 
 为了使得 $h_k$ 能够选择性的压缩数据，以及输出也能够选择性的变化， $\bar{A},\bar{B},C$ 都要成为关于输入变化的值。而 $\bar{A},\bar{B}$ 又是通过 $\Delta$ 离散化得到的，于是问题变成了让 $A, B, C, \Delta$ 变成与输入相关。
