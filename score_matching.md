@@ -215,6 +215,26 @@ J_{DSM_{p(\tilde{x})}}(\theta) &= \mathbb{E}_{p(x, \tilde{x})}\left[\frac{1}{2}\
 $$
 可知，两者等价。也就是说最优解 $\theta^* = \argmin_\theta J_{DSM_{p(\tilde{x})}}(\theta)$，对于 $\tilde{x} \in \mathbb{R}^d$，几乎处处满足 $s(\tilde{x};\theta^*)=\triangledown_{\tilde{x}} \log p(\tilde{x})$。
 
+ps 可以推导一下: 
+
+$$
+\begin{align}
+\triangledown_{\tilde{x}} \log p(\tilde{x}) &= \frac{1}{p(\tilde{x})}\triangledown_{\tilde{x}}\int_x p(x)p(\tilde{x}|x)dx  \nonumber \\
+&= \frac{1}{p(\tilde{x})}\int_x p(x) \triangledown_{\tilde{x}} p(\tilde{x}|x)dx  \nonumber \\
+&= \frac{1}{p(\tilde{x})}\int_x p(x) p(\tilde{x}|x) \triangledown_{\tilde{x}} \log p(\tilde{x}|x)dx  \nonumber \\
+&=\int_x p(x|\tilde{x}) \triangledown_{\tilde{x}} \log p(\tilde{x}|x)dx  \nonumber \\
+&=\mathbb{E}_{p(x|\tilde{x})}\left[ \triangledown_{\tilde{x}} \log p(\tilde{x}|x) \right]  \nonumber
+\end{align}
+$$
+
+把 Loss 重新组织一下：
+
+$$
+\mathbb{E}_{p(x, \tilde{x})}\left[\frac{1}{2}\|s(\tilde{x};\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x) \|^2\right] = \mathbb{E}_{p(\tilde{x})}\mathbb{E}_{p(x|\tilde{x})}\left[\frac{1}{2}\|s(\tilde{x};\theta) - \triangledown_{\tilde{x}} \log p(\tilde{x}|x) \|^2\right]
+$$
+
+也就不难看出为什么 $s(\tilde{x};\theta^*)=\triangledown_{\tilde{x}} \log p(\tilde{x})$。
+
 显然，给与固定模式的噪声，$p(\tilde{x}|x)$ 是可以计算的。通过优化 $J_{DSM_{p(\tilde{x})}}$，在 $p(x)$ 和 $p(\tilde{x})$ 都未知的情况下，我们居然可以估计出 $\triangledown_{\tilde{x}} \log p(\tilde{x})$。(amazing!)
 
 举个栗子：$\tilde{x} = x + \sigma\epsilon, \epsilon \sim \mathcal{N}(0,\mathbf{I})$，显然此时 $p(\tilde{x}|x)=\mathcal{N}(\tilde{x};x,\sigma^2\mathbf{I})$，此时:
